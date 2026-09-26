@@ -1,0 +1,56 @@
+[
+  {
+    "jabatan": "Wali Kelas",
+    "nama": "",
+    "foto": "struktur-kelas/wali-kelas.webp",
+    "level": 1
+  },
+  {
+    "jabatan": "Ketua Kelas",
+    "nama": "",
+    "foto": "struktur-kelas/ketua.webp",
+    "level": 2
+  },
+  {
+    "jabatan": "Wakil Ketua",
+    "nama": "",
+    "foto": "struktur-kelas/wakil.webp",
+    "level": 2
+  },
+  {
+    "jabatan": "Sekretaris",
+    "nama": "",
+    "foto": "struktur-kelas/sekretaris-1.webp",
+    "level": 3
+  },
+  {
+    "jabatan": "Sekretaris",
+    "nama": "",
+    "foto": "struktur-kelas/sekretaris-2.webp",
+    "level": 3
+  },
+  {
+    "jabatan": "Bendahara",
+    "nama": "",
+    "foto": "struktur-kelas/bendahara-1.webp",
+    "level": 3
+  },
+  {
+    "jabatan": "Bendahara",
+    "nama": "",
+    "foto": "struktur-kelas/bendahara-2.webp",
+    "level": 3
+  },
+  {
+    "jabatan": "Absensi",
+    "nama": "",
+    "foto": "struktur-kelas/absensi-1.webp",
+    "level": 3
+  },
+  {
+    "jabatan": "Absensi",
+    "nama": "",
+    "foto": "struktur-kelas/absensi-2.webp",
+    "level": 3
+  }
+]
