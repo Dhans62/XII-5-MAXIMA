@@ -73,20 +73,16 @@ h1, h2, h3 {
 .landing__overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(43,38,32,0.55) 0%, rgba(43,38,32,0.82) 100%);
+  background: radial-gradient(ellipse at center, rgba(43,38,32,0.5) 0%, rgba(43,38,32,0.88) 100%);
 }
 
 .landing__content {
   position: relative;
   z-index: 2;
-  padding: 2.5rem 2rem;
+  padding: 2rem;
   color: var(--cream);
-  max-width: 480px;
+  max-width: 520px;
   text-align: center;
-  background: rgba(43,38,32,0.35);
-  border: 1px solid rgba(184,148,90,0.4);
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
   animation: landingContentIn 1s ease 0.2s both;
 }
 

@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupNavbarScrollState();
   startAutoplay();
 
-  AOS.init({ duration: 700, once: true, offset: 60 });
+  AOS.init({ duration: 700, once: false, mirror: true, offset: 60 });
 });
 
 /* ============================================================
