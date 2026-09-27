@@ -209,23 +209,43 @@ function stopBlurTrend() {
   cameraWrap.classList.remove("is-blurred");
 }
 
+let presentFrames = 0;
+let absentFrames = 0;
+const ENTER_FRAMES = 3;
+const EXIT_FRAMES = 10;
+
 function blurLoop() {
   if (!blurLoopActive || currentMode !== "blur") return;
 
   if (video.readyState >= 2) {
     const result = handLandmarker.detectForVideo(video, performance.now());
+    let isPeaceSign = false;
 
     if (result.landmarks && result.landmarks.length > 0) {
-      const landmarks = result.landmarks[0];
-      const isPeaceSign = detectPeaceSign(landmarks);
-      cameraWrap.classList.toggle("is-blurred", isPeaceSign);
-      blurStatus.textContent = isPeaceSign
-        ? "Pose terdeteksi ✌️ — blur aktif"
-        : "Gerakkan tangan untuk efek blur ✌️";
-    } else {
-      cameraWrap.classList.remove("is-blurred");
-      blurStatus.textContent = "Gerakkan tangan untuk efek blur ✌️";
+      isPeaceSign = detectPeaceSign(result.landmarks[0]);
     }
+
+    if (isPeaceSign) {
+      presentFrames++;
+      absentFrames = 0;
+    } else {
+      absentFrames++;
+      presentFrames = 0;
+    }
+
+    const currentlyBlurred = cameraWrap.classList.contains("is-blurred");
+    let shouldBlur = currentlyBlurred;
+
+    if (!currentlyBlurred && presentFrames >= ENTER_FRAMES) {
+      shouldBlur = true;
+    } else if (currentlyBlurred && absentFrames >= EXIT_FRAMES) {
+      shouldBlur = false;
+    }
+
+    cameraWrap.classList.toggle("is-blurred", shouldBlur);
+    blurStatus.textContent = shouldBlur
+      ? "Pose terdeteksi ✌️ — blur aktif"
+      : "Gerakkan tangan untuk efek blur ✌️";
   }
 
   requestAnimationFrame(blurLoop);
@@ -239,7 +259,7 @@ function isFingerExtended(landmarks, tipIdx, pipIdx) {
   const wrist = landmarks[0];
   const distTip = distance(wrist, landmarks[tipIdx]);
   const distPip = distance(wrist, landmarks[pipIdx]);
-  return distTip > distPip * 1.15;
+  return distTip > distPip * 1.1;
 }
 
 function detectPeaceSign(landmarks) {
