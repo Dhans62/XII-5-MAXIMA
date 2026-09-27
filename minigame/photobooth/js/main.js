@@ -212,7 +212,7 @@ function stopBlurTrend() {
 let presentFrames = 0;
 let absentFrames = 0;
 const ENTER_FRAMES = 3;
-const EXIT_FRAMES = 10;
+const EXIT_FRAMES = 7;
 
 function blurLoop() {
   if (!blurLoopActive || currentMode !== "blur") return;
