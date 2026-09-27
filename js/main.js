@@ -79,7 +79,7 @@ function setupScrollReveal() {
         entry.target.classList.toggle("is-visible", entry.isIntersecting);
       });
     },
-    { threshold: 0.15 }
+    { threshold: 0, rootMargin: "-35% 0px -35% 0px" }
   );
   items.forEach((item) => observer.observe(item));
 }
