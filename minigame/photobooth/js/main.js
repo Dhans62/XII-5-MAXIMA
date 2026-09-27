@@ -17,7 +17,6 @@ let currentMode = "photobooth"; // "photobooth" | "blur"
 let capturedPhotos = [];
 let handLandmarker = null;
 let blurLoopActive = false;
-let lastLandmarks = null;
 
 /* ============================================================
    KAMERA
@@ -218,29 +217,38 @@ function blurLoop() {
 
     if (result.landmarks && result.landmarks.length > 0) {
       const landmarks = result.landmarks[0];
-      const movement = calculateMovement(landmarks, lastLandmarks);
-      lastLandmarks = landmarks;
-
-      const isMoving = movement > 0.015; // ambang batas, bisa disesuaikan
-      cameraWrap.classList.toggle("is-blurred", isMoving);
+      const isPeaceSign = detectPeaceSign(landmarks);
+      cameraWrap.classList.toggle("is-blurred", isPeaceSign);
+      blurStatus.textContent = isPeaceSign
+        ? "Pose terdeteksi ✌️ — blur aktif"
+        : "Gerakkan tangan untuk efek blur ✌️";
     } else {
-      lastLandmarks = null;
       cameraWrap.classList.remove("is-blurred");
+      blurStatus.textContent = "Gerakkan tangan untuk efek blur ✌️";
     }
   }
 
   requestAnimationFrame(blurLoop);
 }
 
-function calculateMovement(current, previous) {
-  if (!previous) return 0;
-  let total = 0;
-  for (let i = 0; i < current.length; i++) {
-    const dx = current[i].x - previous[i].x;
-    const dy = current[i].y - previous[i].y;
-    total += Math.sqrt(dx * dx + dy * dy);
-  }
-  return total / current.length;
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function isFingerExtended(landmarks, tipIdx, pipIdx) {
+  const wrist = landmarks[0];
+  const distTip = distance(wrist, landmarks[tipIdx]);
+  const distPip = distance(wrist, landmarks[pipIdx]);
+  return distTip > distPip * 1.15;
+}
+
+function detectPeaceSign(landmarks) {
+  const indexExtended = isFingerExtended(landmarks, 8, 6);
+  const middleExtended = isFingerExtended(landmarks, 12, 10);
+  const ringExtended = isFingerExtended(landmarks, 16, 14);
+  const pinkyExtended = isFingerExtended(landmarks, 20, 18);
+
+  return indexExtended && middleExtended && !ringExtended && !pinkyExtended;
 }
 
 /* ============================================================

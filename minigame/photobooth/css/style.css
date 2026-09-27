@@ -111,6 +111,10 @@ body {
   z-index: 5;
 }
 
+.countdown-overlay[hidden] {
+  display: none;
+}
+
 .blur-status {
   position: absolute;
   bottom: 1rem;
