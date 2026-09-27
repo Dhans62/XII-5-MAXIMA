@@ -6,7 +6,7 @@
 <title>Photobooth — XII-5 · MAXIMA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 
@@ -21,6 +21,7 @@
   <main class="stage">
     <div class="camera-wrap" id="cameraWrap" data-theme="lucu">
       <video id="video" autoplay playsinline muted></video>
+      <div id="stickerLayer" class="sticker-layer"></div>
       <canvas id="captureCanvas" hidden></canvas>
       <div id="countdownOverlay" class="countdown-overlay" hidden></div>
       <p id="blurStatus" class="blur-status" hidden>Gerakkan tangan untuk efek blur ✌️</p>
@@ -30,10 +31,11 @@
       <div class="panel__section">
         <h3>Tema</h3>
         <div class="theme-list">
-          <button class="theme-btn is-active" data-theme="lucu">Lucu</button>
-          <button class="theme-btn" data-theme="keren">Keren</button>
-          <button class="theme-btn" data-theme="estetik">Estetik</button>
+          <button class="theme-btn is-active" data-category="lucu">Lucu</button>
+          <button class="theme-btn" data-category="keren">Keren</button>
+          <button class="theme-btn" data-category="estetik">Estetik</button>
         </div>
+        <div id="templateList" class="template-list"></div>
       </div>
 
       <div class="panel__section" id="photoboothControls">
@@ -62,6 +64,6 @@
     </aside>
   </main>
 
-<script type="module" src="js/main.js?v=2"></script>
+<script type="module" src="js/main.js?v=3"></script>
 </body>
 </html>

@@ -35,15 +35,96 @@ async function startCamera() {
 }
 
 /* ============================================================
-   TEMA
+   TEMA — kategori & template
    ============================================================ */
+const THEME_DATA = {
+  lucu: [
+    {
+      id: "bunga",
+      label: "Bunga",
+      stickers: [
+        { src: "assets/themes/lucu/bunga.svg", pos: "pos-top-left" },
+        { src: "assets/themes/lucu/bunga.svg", pos: "pos-top-right" },
+      ],
+    },
+    {
+      id: "kuning",
+      label: "Kuning",
+      stickers: [{ src: "assets/themes/lucu/kuning.svg", pos: "pos-bottom-center" }],
+    },
+  ],
+  keren: [
+    {
+      id: "neon",
+      label: "Neon",
+      stickers: [{ src: "assets/themes/keren/neon.svg", pos: "pos-top-right" }],
+    },
+    {
+      id: "percikan",
+      label: "Percikan",
+      stickers: [
+        { src: "assets/themes/keren/percikan.svg", pos: "pos-top-left" },
+        { src: "assets/themes/keren/percikan.svg", pos: "pos-top-right" },
+      ],
+    },
+  ],
+  estetik: [
+    {
+      id: "ombak",
+      label: "Ombak",
+      stickers: [{ src: "assets/themes/estetik/ombak.svg", pos: "pos-bottom-center" }],
+    },
+    {
+      id: "daun",
+      label: "Daun",
+      stickers: [{ src: "assets/themes/estetik/daun.svg", pos: "pos-top-left" }],
+    },
+  ],
+};
+
+let currentCategory = "lucu";
+const templateListEl = document.getElementById("templateList");
+const stickerLayer = document.getElementById("stickerLayer");
+
 document.querySelectorAll(".theme-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".theme-btn").forEach((b) => b.classList.remove("is-active"));
     btn.classList.add("is-active");
-    cameraWrap.dataset.theme = btn.dataset.theme;
+    currentCategory = btn.dataset.category;
+    cameraWrap.dataset.theme = currentCategory;
+    renderTemplateList(currentCategory);
   });
 });
+
+function renderTemplateList(category) {
+  const templates = THEME_DATA[category];
+  templateListEl.innerHTML = "";
+  templates.forEach((tpl, i) => {
+    const btn = document.createElement("button");
+    btn.className = "template-btn" + (i === 0 ? " is-active" : "");
+    btn.innerHTML = `<img src="${tpl.stickers[0].src}" alt=""><span>${tpl.label}</span>`;
+    btn.addEventListener("click", () => {
+      templateListEl.querySelectorAll(".template-btn").forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      applyStickers(tpl.stickers);
+    });
+    templateListEl.appendChild(btn);
+  });
+  applyStickers(templates[0].stickers);
+}
+
+function applyStickers(stickers) {
+  stickerLayer.innerHTML = "";
+  stickers.forEach((s) => {
+    const img = document.createElement("img");
+    img.src = s.src;
+    img.className = s.pos;
+    img.alt = "";
+    stickerLayer.appendChild(img);
+  });
+}
+
+renderTemplateList(currentCategory);
 
 /* ============================================================
    MODE SWITCH
@@ -116,11 +197,15 @@ function takeSnapshot() {
   const ctx = captureCanvas.getContext("2d");
   captureCanvas.width = video.videoWidth;
   captureCanvas.height = video.videoHeight;
-  // Mirror horizontal supaya hasil foto tidak terbalik seperti preview
+
+  // Gambar video (dicerminkan biar sama seperti yang dilihat di preview)
   ctx.translate(captureCanvas.width, 0);
   ctx.scale(-1, 1);
   ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  // Gambar stiker tema (tidak dicerminkan, sama seperti tampilan layar)
+  drawStickersToCanvas(ctx, captureCanvas.width, captureCanvas.height);
 
   const dataUrl = captureCanvas.toDataURL("image/png");
   capturedPhotos.push(dataUrl);
@@ -128,6 +213,34 @@ function takeSnapshot() {
   const img = document.createElement("img");
   img.src = dataUrl;
   resultStrip.appendChild(img);
+}
+
+function drawStickersToCanvas(ctx, canvasW, canvasH) {
+  const stickerImgs = stickerLayer.querySelectorAll("img");
+  stickerImgs.forEach((el) => {
+    const w = el.naturalWidth || 200;
+    const h = el.naturalHeight || 200;
+    const ratio = h / w;
+
+    let boxW, x, y;
+    if (el.classList.contains("pos-top-left")) {
+      boxW = canvasW * 0.18;
+      x = canvasW * 0.03;
+      y = canvasH * 0.03;
+    } else if (el.classList.contains("pos-top-right")) {
+      boxW = canvasW * 0.18;
+      x = canvasW * 0.97 - boxW;
+      y = canvasH * 0.03;
+    } else {
+      // pos-bottom-center
+      boxW = canvasW * 0.55;
+      x = (canvasW - boxW) / 2;
+      y = canvasH * 0.62;
+    }
+
+    const boxH = boxW * ratio;
+    ctx.drawImage(el, x, y, boxW, boxH);
+  });
 }
 
 function buildStripAndEnableDownload() {
