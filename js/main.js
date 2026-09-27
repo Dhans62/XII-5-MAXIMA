@@ -22,9 +22,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupModal(anggota);
   setupCarouselControls();
   setupNavbarScrollState();
+  setupScrollReveal();
   startAutoplay();
-
-  AOS.init({ duration: 700, once: false, mirror: true, offset: 60 });
 });
 
 /* ============================================================
@@ -42,7 +41,6 @@ function setupLandingTransition() {
       mainContent.hidden = false;
       mainContent.classList.add("is-visible");
       document.body.style.overflow = "auto";
-      AOS.refreshHard();
     }, 650);
   });
 
@@ -68,6 +66,22 @@ function renderFotoBersamaStats(anggota) {
   const el = document.getElementById("fotoBersamaStats");
   if (!el) return;
   el.textContent = `${anggota.length} Anggota · XII-5 · Tahun Ajaran 2026/2027`;
+}
+
+/* ============================================================
+   SCROLL REVEAL — dua arah, pakai IntersectionObserver native
+   ============================================================ */
+function setupScrollReveal() {
+  const items = document.querySelectorAll(".reveal");
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        entry.target.classList.toggle("is-visible", entry.isIntersecting);
+      });
+    },
+    { threshold: 0.15 }
+  );
+  items.forEach((item) => observer.observe(item));
 }
 
 /* ============================================================
@@ -98,9 +112,8 @@ function renderStrukturKelas(data) {
 
 function buildStrukturCard(person, level, indexInRow) {
   const card = document.createElement("div");
-  card.className = `struktur-card struktur-card--level-${level}`;
-  card.setAttribute("data-aos", "fade-up");
-  card.setAttribute("data-aos-delay", String(indexInRow * 100));
+  card.className = `struktur-card struktur-card--level-${level} reveal`;
+  card.style.transitionDelay = `${indexInRow * 100}ms`;
   card.innerHTML = `
     <img class="struktur-card__photo" src="public/images/${person.foto}" alt="${person.nama || person.jabatan}">
     <p class="struktur-card__nama">${person.nama || "-"}</p>
