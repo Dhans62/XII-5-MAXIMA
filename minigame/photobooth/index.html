@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Photobooth — XII-5 · MAXIMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="../../index.html" class="topbar__back">← Kembali</a>
+    <div class="topbar__mode">
+      <button id="modePhotobooth" class="mode-btn is-active">Photobooth</button>
+      <button id="modeBlur" class="mode-btn">Blur Trend</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="camera-wrap" id="cameraWrap" data-theme="lucu">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="captureCanvas" hidden></canvas>
+      <div id="countdownOverlay" class="countdown-overlay" hidden></div>
+      <p id="blurStatus" class="blur-status" hidden>Gerakkan tangan untuk efek blur ✌️</p>
+    </div>
+
+    <aside class="panel">
+      <div class="panel__section">
+        <h3>Tema</h3>
+        <div class="theme-list">
+          <button class="theme-btn is-active" data-theme="lucu">Lucu</button>
+          <button class="theme-btn" data-theme="keren">Keren</button>
+          <button class="theme-btn" data-theme="estetik">Estetik</button>
+        </div>
+      </div>
+
+      <div class="panel__section" id="photoboothControls">
+        <h3>Mode Ambil Foto</h3>
+        <div class="option-row">
+          <label><input type="radio" name="captureMode" value="manual" checked> Manual</label>
+          <label><input type="radio" name="captureMode" value="auto"> Otomatis (5s)</label>
+        </div>
+        <h3>Jumlah Foto</h3>
+        <div class="option-row">
+          <select id="jumlahFoto">
+            <option value="1">1</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+          </select>
+        </div>
+        <button id="captureBtn" class="capture-btn">Ambil Foto</button>
+      </div>
+
+      <div class="panel__section">
+        <h3>Hasil</h3>
+        <div id="resultStrip" class="result-strip"></div>
+        <a id="downloadBtn" class="download-btn" hidden download="photobooth-xii5-maxima.png">Download Strip</a>
+      </div>
+    </aside>
+  </main>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
