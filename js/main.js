@@ -171,14 +171,12 @@ function buildAnggotaCard(person) {
   return card;
 }
 
-function updateTrackPosition(animate = true) {
+function updateTrackPosition() {
   const track = document.getElementById("anggotaTrack");
-  track.style.transition = animate ? "" : "none";
-  track.style.transform = `translateX(-${anggotaState.currentSlide * 100}%)`;
-  if (!animate) {
-    void track.offsetHeight;
-    track.style.transition = "";
-  }
+  const slides = track.querySelectorAll(".carousel__slide");
+  slides.forEach((slide, i) => {
+    slide.classList.toggle("is-active", i === anggotaState.currentSlide);
+  });
 }
 
 function goToSlide(index) {
