@@ -88,17 +88,19 @@ function renderStrukturKelas(data) {
     const row = document.createElement("div");
     row.className = "struktur-row";
 
-    people.forEach((person) => {
-      row.appendChild(buildStrukturCard(person, level));
+    people.forEach((person, i) => {
+      row.appendChild(buildStrukturCard(person, level, i));
     });
 
     container.appendChild(row);
   });
 }
 
-function buildStrukturCard(person, level) {
+function buildStrukturCard(person, level, indexInRow) {
   const card = document.createElement("div");
   card.className = `struktur-card struktur-card--level-${level}`;
+  card.setAttribute("data-aos", "fade-up");
+  card.setAttribute("data-aos-delay", String(indexInRow * 100));
   card.innerHTML = `
     <img class="struktur-card__photo" src="public/images/${person.foto}" alt="${person.nama || person.jabatan}">
     <p class="struktur-card__nama">${person.nama || "-"}</p>
