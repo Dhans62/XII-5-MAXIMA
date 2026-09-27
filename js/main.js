@@ -1,8 +1,15 @@
 /**
  * main.js
  * Render seluruh konten dinamis (struktur kelas, anggota, momen)
- * dan menangani interaksi (landing transition, modal biodata).
+ * dan menangani interaksi (landing transition, carousel, modal biodata).
  */
+
+const anggotaState = {
+  data: [],
+  currentSlide: 0,
+  totalSlides: 0,
+  autoplayTimer: null,
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
   const { anggota, strukturKelas, momen } = await loadAllData();
@@ -10,8 +17,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderStrukturKelas(strukturKelas);
   renderAnggota(anggota);
   renderMomen(momen);
+  renderFotoBersamaStats(anggota);
   setupLandingTransition();
   setupModal(anggota);
+  setupCarouselControls();
+  setupNavbarScrollState();
+  startAutoplay();
 
   AOS.init({ duration: 700, once: true, offset: 60 });
 });
@@ -35,8 +46,28 @@ function setupLandingTransition() {
     }, 650);
   });
 
-  // Landing menutupi scroll sampai user klik masuk
   document.body.style.overflow = "hidden";
+}
+
+/* ============================================================
+   NAVBAR — beri background solid setelah discroll dikit
+   ============================================================ */
+function setupNavbarScrollState() {
+  const navbar = document.getElementById("navbar");
+  if (!navbar) return;
+
+  window.addEventListener("scroll", () => {
+    navbar.classList.toggle("is-scrolled", window.scrollY > 24);
+  });
+}
+
+/* ============================================================
+   FOTO BERSAMA — baris statistik kecil
+   ============================================================ */
+function renderFotoBersamaStats(anggota) {
+  const el = document.getElementById("fotoBersamaStats");
+  if (!el) return;
+  el.textContent = `${anggota.length} Anggota · XII-5 · Tahun Ajaran 2026/2027`;
 }
 
 /* ============================================================
@@ -77,37 +108,165 @@ function buildStrukturCard(person, level) {
 }
 
 /* ============================================================
-   ANGGOTA KELAS
+   ANGGOTA KELAS — CAROUSEL + HOVER PREVIEW (desktop)
    ============================================================ */
 function renderAnggota(data) {
-  const container = document.getElementById("anggotaGrid");
+  anggotaState.data = data.slice().sort((a, b) => a.no_absen - b.no_absen);
+  buildSlides();
+  window.addEventListener("resize", debounce(buildSlides, 300));
+}
 
-  data
-    .sort((a, b) => a.no_absen - b.no_absen)
-    .forEach((person) => {
-      const card = document.createElement("div");
-      card.className = "anggota-card";
-      card.dataset.absen = person.no_absen;
-      card.innerHTML = `
-        <div style="position:relative;">
-          <img class="anggota-card__photo" src="public/images/${person.foto}" alt="${person.nama_lengkap || "Anggota kelas"}">
-          <span class="anggota-card__absen">${person.no_absen}</span>
-        </div>
-        <p class="anggota-card__nama">${person.nama_lengkap || "-"}</p>
-      `;
-      container.appendChild(card);
-    });
+function getItemsPerSlide() {
+  const w = window.innerWidth;
+  if (w >= 1024) return 10; // 5 kolom x 2 baris
+  if (w >= 600) return 6;   // 3 kolom x 2 baris
+  return 4;                  // 2 kolom x 2 baris
+}
+
+function chunkArray(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function buildSlides() {
+  const track = document.getElementById("anggotaTrack");
+  const itemsPerSlide = getItemsPerSlide();
+  const slides = chunkArray(anggotaState.data, itemsPerSlide);
+
+  track.innerHTML = "";
+  slides.forEach((slideItems) => {
+    const slideEl = document.createElement("div");
+    slideEl.className = "carousel__slide";
+    slideItems.forEach((person) => slideEl.appendChild(buildAnggotaCard(person)));
+    track.appendChild(slideEl);
+  });
+
+  anggotaState.totalSlides = slides.length;
+  anggotaState.currentSlide = Math.min(anggotaState.currentSlide, Math.max(slides.length - 1, 0));
+  updateTrackPosition(false);
+}
+
+function buildAnggotaCard(person) {
+  const card = document.createElement("div");
+  card.className = "anggota-card";
+  card.dataset.absen = person.no_absen;
+
+  const harapanSingkat = person.harapan
+    ? (person.harapan.length > 60 ? person.harapan.slice(0, 60) + "…" : person.harapan)
+    : "";
+
+  card.innerHTML = `
+    <div class="anggota-card__media">
+      <img class="anggota-card__photo" src="public/images/${person.foto}" alt="${person.nama_lengkap || "Anggota kelas"}">
+      <span class="anggota-card__absen">${person.no_absen}</span>
+      <div class="anggota-card__hover-info">
+        <p class="anggota-card__hover-nama">${person.nama_lengkap || "-"}</p>
+        ${harapanSingkat ? `<p class="anggota-card__hover-harapan">"${harapanSingkat}"</p>` : ""}
+        <span class="anggota-card__hover-hint">Klik untuk detail lengkap</span>
+      </div>
+    </div>
+    <p class="anggota-card__nama">${person.nama_lengkap || "-"}</p>
+  `;
+  return card;
+}
+
+function updateTrackPosition(animate = true) {
+  const track = document.getElementById("anggotaTrack");
+  track.style.transition = animate ? "" : "none";
+  track.style.transform = `translateX(-${anggotaState.currentSlide * 100}%)`;
+  if (!animate) {
+    void track.offsetHeight;
+    track.style.transition = "";
+  }
+}
+
+function goToSlide(index) {
+  const total = anggotaState.totalSlides;
+  if (total === 0) return;
+  anggotaState.currentSlide = (index + total) % total;
+  updateTrackPosition();
+}
+
+function nextSlide() {
+  goToSlide(anggotaState.currentSlide + 1);
+}
+
+function prevSlide() {
+  goToSlide(anggotaState.currentSlide - 1);
+}
+
+function startAutoplay() {
+  stopAutoplay();
+  anggotaState.autoplayTimer = setInterval(nextSlide, 4000);
+}
+
+function stopAutoplay() {
+  if (anggotaState.autoplayTimer) {
+    clearInterval(anggotaState.autoplayTimer);
+    anggotaState.autoplayTimer = null;
+  }
+}
+
+function setupCarouselControls() {
+  const carousel = document.getElementById("anggotaCarousel");
+  const nextBtn = document.getElementById("anggotaNext");
+  const prevBtn = document.getElementById("anggotaPrev");
+  const viewport = carousel.querySelector(".carousel__viewport");
+
+  nextBtn.addEventListener("click", () => {
+    nextSlide();
+    startAutoplay();
+  });
+
+  prevBtn.addEventListener("click", () => {
+    prevSlide();
+    startAutoplay();
+  });
+
+  carousel.addEventListener("mouseenter", stopAutoplay);
+  carousel.addEventListener("mouseleave", startAutoplay);
+
+  let touchStartX = 0;
+  viewport.addEventListener(
+    "touchstart",
+    (e) => {
+      touchStartX = e.touches[0].clientX;
+      stopAutoplay();
+    },
+    { passive: true }
+  );
+
+  viewport.addEventListener(
+    "touchend",
+    (e) => {
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(deltaX) > 40) {
+        deltaX < 0 ? nextSlide() : prevSlide();
+      }
+      startAutoplay();
+    },
+    { passive: true }
+  );
+}
+
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
 }
 
 /* ============================================================
-   MODAL BIODATA
+   MODAL BIODATA (fade + scale, tanpa patah)
    ============================================================ */
 function setupModal(anggotaData) {
   const modal = document.getElementById("anggotaModal");
   const modalCard = modal.querySelector(".modal__card");
-  const grid = document.getElementById("anggotaGrid");
+  const carousel = document.getElementById("anggotaCarousel");
 
-  grid.addEventListener("click", (e) => {
+  carousel.addEventListener("click", (e) => {
     const card = e.target.closest(".anggota-card");
     if (!card) return;
 
@@ -126,28 +285,34 @@ function setupModal(anggotaData) {
       ? `"${person.harapan}"`
       : "-";
 
-    // Tentukan posisi foto/biodata berdasar letak kartu di layar (khusus desktop)
     const cardRect = card.getBoundingClientRect();
     const isRightSide = cardRect.left + cardRect.width / 2 > window.innerWidth / 2;
     modalCard.classList.toggle("modal--reverse", isRightSide);
 
-    modal.hidden = false;
-    document.body.style.overflow = "hidden";
+    openModal();
   });
 
   modal.querySelectorAll("[data-close]").forEach((el) => {
-    el.addEventListener("click", () => {
-      modal.hidden = true;
-      document.body.style.overflow = "auto";
-    });
+    el.addEventListener("click", closeModal);
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !modal.hidden) {
-      modal.hidden = true;
-      document.body.style.overflow = "auto";
+    if (e.key === "Escape" && modal.classList.contains("is-open")) {
+      closeModal();
     }
   });
+
+  function openModal() {
+    modal.classList.add("is-open");
+    document.body.style.overflow = "hidden";
+    stopAutoplay();
+  }
+
+  function closeModal() {
+    modal.classList.remove("is-open");
+    document.body.style.overflow = "auto";
+    startAutoplay();
+  }
 }
 
 /* ============================================================
@@ -173,7 +338,6 @@ function renderMomen(momenData) {
 }
 
 function formatMomenTitle(key) {
-  // "semester-1-kelas-11" -> "Semester 1 · Kelas 11"
   const parts = key.split("-");
   const semIndex = parts.indexOf("semester");
   const kelasIndex = parts.indexOf("kelas");

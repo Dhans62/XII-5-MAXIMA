@@ -34,16 +34,27 @@
   <!-- ===== MAIN CONTENT ===== -->
   <main id="main-content" class="main-content" hidden>
 
+    <nav id="navbar" class="navbar">
+      <a href="#main-content" class="navbar__brand">XII-5 · MAXIMA</a>
+      <div class="navbar__links">
+        <a href="#foto-bersama">Foto Bersama</a>
+        <a href="#struktur">Struktur</a>
+        <a href="#anggota">Anggota</a>
+        <a href="#momen">Momen</a>
+      </div>
+    </nav>
+
     <!-- FOTO BERSAMA -->
-    <section class="section section--foto-bersama" data-aos="fade-up">
+    <section id="foto-bersama" class="section section--foto-bersama" data-aos="fade-up">
       <figure class="foto-bersama__frame">
         <img src="public/images/foto-bersama/foto-utama.webp" alt="Foto bersama kelas XII-5 MAXIMA" class="foto-bersama__img">
         <figcaption class="foto-bersama__caption">XII-5 · MAXIMA — 2026/2027</figcaption>
       </figure>
+      <p id="fotoBersamaStats" class="foto-bersama__stats"></p>
     </section>
 
     <!-- STRUKTUR KELAS -->
-    <section class="section section--struktur" data-aos="fade-up">
+    <section id="struktur" class="section section--struktur" data-aos="fade-up">
       <h2 class="section__heading">Struktur Kelas</h2>
       <div id="strukturKelas" class="struktur-grid">
         <!-- diisi otomatis oleh JS dari data/struktur-kelas.json -->
@@ -51,15 +62,25 @@
     </section>
 
     <!-- ANGGOTA KELAS -->
-    <section class="section section--anggota" data-aos="fade-up">
+    <section id="anggota" class="section section--anggota" data-aos="fade-up">
       <h2 class="section__heading">Anggota Kelas</h2>
-      <div id="anggotaGrid" class="anggota-grid">
-        <!-- diisi otomatis oleh JS dari data/anggota.json -->
+      <div class="carousel" id="anggotaCarousel">
+        <button class="carousel__arrow carousel__arrow--prev" id="anggotaPrev" aria-label="Sebelumnya">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="carousel__viewport">
+          <div class="carousel__track" id="anggotaTrack">
+            <!-- diisi otomatis oleh JS dari data/anggota.json -->
+          </div>
+        </div>
+        <button class="carousel__arrow carousel__arrow--next" id="anggotaNext" aria-label="Selanjutnya">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
     </section>
 
     <!-- MOMEN-MOMEN -->
-    <section class="section section--momen" data-aos="fade-up">
+    <section id="momen" class="section section--momen" data-aos="fade-up">
       <h2 class="section__heading">Momen-Momen</h2>
       <div id="momenContainer" class="momen-container">
         <!-- diisi otomatis oleh JS dari data/momen.json -->
@@ -84,7 +105,7 @@
   </main>
 
   <!-- ===== MODAL OVERLAY ANGGOTA ===== -->
-  <div id="anggotaModal" class="modal" hidden>
+  <div id="anggotaModal" class="modal">
     <div class="modal__backdrop" data-close></div>
     <div class="modal__card">
       <button class="modal__close" data-close aria-label="Tutup">
