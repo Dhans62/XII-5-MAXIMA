@@ -1,283 +1,261 @@
-import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+import { LAYOUTS, getLayout } from "./layouts.js";
+import { THEMES, getTemplate, getFirstTemplate } from "./themes.js";
 
-const video = document.getElementById("video");
-const cameraWrap = document.getElementById("cameraWrap");
-const captureCanvas = document.getElementById("captureCanvas");
-const countdownOverlay = document.getElementById("countdownOverlay");
-const blurStatus = document.getElementById("blurStatus");
-const captureBtn = document.getElementById("captureBtn");
-const jumlahFotoSelect = document.getElementById("jumlahFoto");
-const resultStrip = document.getElementById("resultStrip");
-const downloadBtn = document.getElementById("downloadBtn");
-const photoboothControls = document.getElementById("photoboothControls");
-const modePhotoboothBtn = document.getElementById("modePhotobooth");
-const modeBlurBtn = document.getElementById("modeBlur");
+const FILTERS = [
+  { id: "normal", label: "Normal", css: "none" },
+  { id: "warm", label: "Hangat", css: "sepia(0.25) saturate(1.2) brightness(1.05)" },
+  { id: "cool", label: "Sejuk", css: "saturate(1.1) hue-rotate(15deg) brightness(1.02)" },
+  { id: "bw", label: "B&W", css: "grayscale(1) contrast(1.05)" },
+];
 
-let currentMode = "photobooth"; // "photobooth" | "blur"
-let capturedPhotos = [];
-let handLandmarker = null;
-let blurLoopActive = false;
+const state = {
+  layout: getLayout("strip4"),
+  filter: FILTERS[0],
+  category: "lucu",
+  template: getFirstTemplate("lucu"),
+  timerMode: "manual",
+  capturedPhotos: [], // Image[] — sudah dicrop sesuai rasio slot & sudah kena filter
+};
+
+let mediaStream = null;
+
+/* ============================================================
+   ELEMEN
+   ============================================================ */
+const el = (id) => document.getElementById(id);
+const video = el("video");
+const videoCapture = el("videoCapture");
+const cameraError = el("cameraError");
 
 /* ============================================================
    KAMERA
    ============================================================ */
 async function startCamera() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
       audio: false,
     });
-    video.srcObject = stream;
+    video.srcObject = mediaStream;
+    videoCapture.srcObject = mediaStream;
   } catch (err) {
-    alert("Kamera tidak bisa diakses. Pastikan izin kamera sudah diberikan.");
+    cameraError.hidden = false;
     console.error(err);
   }
 }
 
+function applyFilterToVideos() {
+  video.style.filter = state.filter.css;
+  videoCapture.style.filter = state.filter.css;
+}
+
 /* ============================================================
-   TEMA — kategori & template
+   NAVIGASI LAYAR
    ============================================================ */
-const THEME_DATA = {
-  lucu: [
-    {
-      id: "bunga",
-      label: "Bunga",
-      stickers: [
-        { src: "assets/themes/lucu/bunga.svg", pos: "pos-top-left" },
-        { src: "assets/themes/lucu/bunga.svg", pos: "pos-top-right" },
-      ],
-    },
-    {
-      id: "kuning",
-      label: "Kuning",
-      stickers: [{ src: "assets/themes/lucu/kuning.svg", pos: "pos-bottom-center" }],
-    },
-  ],
-  keren: [
-    {
-      id: "neon",
-      label: "Neon",
-      stickers: [{ src: "assets/themes/keren/neon.svg", pos: "pos-top-right" }],
-    },
-    {
-      id: "percikan",
-      label: "Percikan",
-      stickers: [
-        { src: "assets/themes/keren/percikan.svg", pos: "pos-top-left" },
-        { src: "assets/themes/keren/percikan.svg", pos: "pos-top-right" },
-      ],
-    },
-  ],
-  estetik: [
-    {
-      id: "ombak",
-      label: "Ombak",
-      stickers: [{ src: "assets/themes/estetik/ombak.svg", pos: "pos-bottom-center" }],
-    },
-    {
-      id: "daun",
-      label: "Daun",
-      stickers: [{ src: "assets/themes/estetik/daun.svg", pos: "pos-top-left" }],
-    },
-  ],
-};
+function showScreen(id) {
+  ["screenPrep", "screenCapture", "screenResult"].forEach((s) => {
+    el(s).hidden = s !== id;
+  });
+}
 
-let currentCategory = "lucu";
-const templateListEl = document.getElementById("templateList");
-const stickerLayer = document.getElementById("stickerLayer");
-
-document.querySelectorAll(".theme-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".theme-btn").forEach((b) => b.classList.remove("is-active"));
-    btn.classList.add("is-active");
-    currentCategory = btn.dataset.category;
-    cameraWrap.dataset.theme = currentCategory;
-    renderTemplateList(currentCategory);
+/* ============================================================
+   BOTTOM SHEET (umum)
+   ============================================================ */
+function openSheet(id) {
+  el(id).classList.add("is-open");
+}
+function closeSheet(id) {
+  el(id).classList.remove("is-open");
+}
+document.querySelectorAll(".sheet").forEach((sheet) => {
+  sheet.querySelectorAll("[data-close-sheet]").forEach((btn) => {
+    btn.addEventListener("click", () => sheet.classList.remove("is-open"));
   });
 });
 
-function renderTemplateList(category) {
-  const templates = THEME_DATA[category];
-  templateListEl.innerHTML = "";
-  templates.forEach((tpl, i) => {
+/* ============================================================
+   TIMER CHIPS
+   ============================================================ */
+el("timerChips").addEventListener("click", (e) => {
+  const btn = e.target.closest(".chip");
+  if (!btn) return;
+  document.querySelectorAll("#timerChips .chip").forEach((c) => c.classList.remove("is-active"));
+  btn.classList.add("is-active");
+  state.timerMode = btn.dataset.timer;
+});
+
+/* ============================================================
+   LAYOUT PICKER
+   ============================================================ */
+function layoutThumbHTML(layout) {
+  let cols = 1, rows = layout.count;
+  if (layout.arrangement === "grid2x2") { cols = 2; rows = 2; }
+  if (layout.arrangement === "grid2x3") { cols = 2; rows = 3; }
+  const cells = Array.from({ length: layout.count }, () => "<span></span>").join("");
+  return `<div class="layout-thumb" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr);">${cells}</div>`;
+}
+
+function renderLayoutGrid() {
+  const grid = el("layoutGrid");
+  grid.innerHTML = "";
+  LAYOUTS.forEach((layout) => {
     const btn = document.createElement("button");
-    btn.className = "template-btn" + (i === 0 ? " is-active" : "");
-    btn.innerHTML = `<img src="${tpl.stickers[0].src}" alt=""><span>${tpl.label}</span>`;
+    btn.className = "layout-option" + (layout.id === state.layout.id ? " is-active" : "");
+    btn.innerHTML = `${layoutThumbHTML(layout)}<span class="layout-option__label">${layout.label}</span>`;
     btn.addEventListener("click", () => {
-      templateListEl.querySelectorAll(".template-btn").forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
-      applyStickers(tpl.stickers);
+      state.layout = layout;
+      updateLayoutLabel();
+      renderLayoutGrid();
+      closeSheet("sheetLayout");
     });
-    templateListEl.appendChild(btn);
-  });
-  applyStickers(templates[0].stickers);
-}
-
-function applyStickers(stickers) {
-  stickerLayer.innerHTML = "";
-  stickers.forEach((s) => {
-    const img = document.createElement("img");
-    img.src = s.src;
-    img.className = s.pos;
-    img.alt = "";
-    stickerLayer.appendChild(img);
+    grid.appendChild(btn);
   });
 }
 
-renderTemplateList(currentCategory);
-
-/* ============================================================
-   MODE SWITCH
-   ============================================================ */
-modePhotoboothBtn.addEventListener("click", () => switchMode("photobooth"));
-modeBlurBtn.addEventListener("click", () => switchMode("blur"));
-
-function switchMode(mode) {
-  currentMode = mode;
-  modePhotoboothBtn.classList.toggle("is-active", mode === "photobooth");
-  modeBlurBtn.classList.toggle("is-active", mode === "blur");
-  photoboothControls.style.display = mode === "photobooth" ? "block" : "none";
-  blurStatus.hidden = mode !== "blur";
-
-  if (mode === "blur") {
-    startBlurTrend();
-  } else {
-    stopBlurTrend();
-  }
+function updateLayoutLabel() {
+  el("layoutLabel").textContent = state.layout.label;
 }
 
+el("btnLayout").addEventListener("click", () => {
+  renderLayoutGrid();
+  openSheet("sheetLayout");
+});
+
 /* ============================================================
-   PHOTOBOOTH — CAPTURE
+   FILTER PICKER
    ============================================================ */
-captureBtn.addEventListener("click", async () => {
-  const jumlah = parseInt(jumlahFotoSelect.value, 10);
-  const isAuto = document.querySelector('input[name="captureMode"]:checked').value === "auto";
+function renderFilterGrid() {
+  const grid = el("filterGrid");
+  grid.innerHTML = "";
+  FILTERS.forEach((f) => {
+    const btn = document.createElement("button");
+    btn.className = "filter-option" + (f.id === state.filter.id ? " is-active" : "");
+    btn.innerHTML = `<span class="filter-option__swatch" style="filter:${f.css};background:linear-gradient(135deg,#e8b4c8,#a8c8e8);"></span><span class="filter-option__label">${f.label}</span>`;
+    btn.addEventListener("click", () => {
+      state.filter = f;
+      applyFilterToVideos();
+      renderFilterGrid();
+      updateFilterLabel();
+      closeSheet("sheetFilter");
+    });
+    grid.appendChild(btn);
+  });
+}
 
-  capturedPhotos = [];
-  resultStrip.innerHTML = "";
-  downloadBtn.hidden = true;
-  captureBtn.disabled = true;
+function updateFilterLabel() {
+  el("filterLabel").textContent = state.filter.id === "normal" ? "Filter" : state.filter.label;
+}
 
-  for (let i = 0; i < jumlah; i++) {
-    if (isAuto) {
-      await runCountdown(5);
-    }
-    takeSnapshot();
-    await wait(400); // jeda singkat antar foto biar sempat ganti pose
-  }
+el("btnFilter").addEventListener("click", () => {
+  renderFilterGrid();
+  openSheet("sheetFilter");
+});
 
-  captureBtn.disabled = false;
-  if (capturedPhotos.length > 1) {
-    buildStripAndEnableDownload();
-  } else if (capturedPhotos.length === 1) {
-    downloadBtn.href = capturedPhotos[0];
-    downloadBtn.hidden = false;
+/* ============================================================
+   TEMA PICKER (dipakai bersama Layar 1 & Layar 3)
+   ============================================================ */
+function renderThemeCategoryRow() {
+  const row = el("themeCategoryRow");
+  row.innerHTML = "";
+  Object.keys(THEMES).forEach((catId) => {
+    const btn = document.createElement("button");
+    btn.className = "theme-category-btn" + (catId === state.category ? " is-active" : "");
+    btn.textContent = THEMES[catId].label;
+    btn.addEventListener("click", () => {
+      state.category = catId;
+      state.template = getFirstTemplate(catId);
+      renderThemeCategoryRow();
+      renderThemeTemplateGrid();
+    });
+    row.appendChild(btn);
+  });
+}
+
+function renderThemeTemplateGrid() {
+  const grid = el("themeTemplateGrid");
+  grid.innerHTML = "";
+  THEMES[state.category].templates.forEach((tpl) => {
+    const card = document.createElement("button");
+    card.className = "theme-template-card" + (tpl.id === state.template.id ? " is-active" : "");
+    card.innerHTML = `
+      <div class="theme-template-card__swatch" style="background:${tpl.frameColor}; border:2px solid ${tpl.borderColor};"></div>
+      <div class="theme-template-card__label">${tpl.label}</div>
+    `;
+    card.addEventListener("click", () => {
+      state.template = tpl;
+      renderThemeTemplateGrid();
+      updateThemeLabels();
+      if (!el("screenResult").hidden) renderResult();
+    });
+    grid.appendChild(card);
+  });
+}
+
+function updateThemeLabels() {
+  el("themeLabelPrep").textContent = state.template.label;
+  el("themeLabelResult").textContent = state.template.label;
+}
+
+function openThemeSheet() {
+  renderThemeCategoryRow();
+  renderThemeTemplateGrid();
+  openSheet("sheetTheme");
+}
+el("btnThemePrep").addEventListener("click", openThemeSheet);
+el("btnThemeResult").addEventListener("click", openThemeSheet);
+
+/* ============================================================
+   MULAI FOTO -> LAYAR 2
+   ============================================================ */
+el("mulaiFotoBtn").addEventListener("click", () => {
+  state.capturedPhotos = [];
+  el("thumbRow").innerHTML = "";
+  el("nextBtn").hidden = true;
+  el("manualCaptureBtn").hidden = false;
+  updateCaptureStatus();
+  showScreen("screenCapture");
+  if (state.timerMode !== "manual") {
+    runAutoCaptureSequence();
   }
 });
+
+function updateCaptureStatus() {
+  el("captureStatus").textContent = `Foto ${state.capturedPhotos.length + 1} dari ${state.layout.count}`;
+}
+
+/* ============================================================
+   PENGAMBILAN FOTO
+   ============================================================ */
+el("manualCaptureBtn").addEventListener("click", () => {
+  captureOnePhoto();
+});
+
+async function runAutoCaptureSequence() {
+  el("manualCaptureBtn").hidden = true;
+  const seconds = parseInt(state.timerMode, 10);
+  while (state.capturedPhotos.length < state.layout.count) {
+    await runCountdown(seconds);
+    captureOnePhoto();
+    await wait(500);
+  }
+}
 
 function runCountdown(seconds) {
   return new Promise((resolve) => {
-    countdownOverlay.hidden = false;
+    const overlay = el("countdownOverlay");
     let remaining = seconds;
-    countdownOverlay.textContent = remaining;
+    overlay.hidden = false;
+    overlay.textContent = remaining;
     const interval = setInterval(() => {
       remaining -= 1;
       if (remaining <= 0) {
         clearInterval(interval);
-        countdownOverlay.hidden = true;
+        overlay.hidden = true;
         resolve();
       } else {
-        countdownOverlay.textContent = remaining;
+        overlay.textContent = remaining;
       }
     }, 1000);
-  });
-}
-
-function takeSnapshot() {
-  const ctx = captureCanvas.getContext("2d");
-  captureCanvas.width = video.videoWidth;
-  captureCanvas.height = video.videoHeight;
-
-  // Gambar video (dicerminkan biar sama seperti yang dilihat di preview)
-  ctx.translate(captureCanvas.width, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-  // Gambar stiker tema (tidak dicerminkan, sama seperti tampilan layar)
-  drawStickersToCanvas(ctx, captureCanvas.width, captureCanvas.height);
-
-  const dataUrl = captureCanvas.toDataURL("image/png");
-  capturedPhotos.push(dataUrl);
-
-  const img = document.createElement("img");
-  img.src = dataUrl;
-  resultStrip.appendChild(img);
-}
-
-function drawStickersToCanvas(ctx, canvasW, canvasH) {
-  const stickerImgs = stickerLayer.querySelectorAll("img");
-  stickerImgs.forEach((el) => {
-    const w = el.naturalWidth || 200;
-    const h = el.naturalHeight || 200;
-    const ratio = h / w;
-
-    let boxW, x, y;
-    if (el.classList.contains("pos-top-left")) {
-      boxW = canvasW * 0.18;
-      x = canvasW * 0.03;
-      y = canvasH * 0.03;
-    } else if (el.classList.contains("pos-top-right")) {
-      boxW = canvasW * 0.18;
-      x = canvasW * 0.97 - boxW;
-      y = canvasH * 0.03;
-    } else {
-      // pos-bottom-center
-      boxW = canvasW * 0.55;
-      x = (canvasW - boxW) / 2;
-      y = canvasH * 0.62;
-    }
-
-    const boxH = boxW * ratio;
-    ctx.drawImage(el, x, y, boxW, boxH);
-  });
-}
-
-function buildStripAndEnableDownload() {
-  const images = capturedPhotos.map((src) => {
-    const img = new Image();
-    img.src = src;
-    return img;
-  });
-
-  Promise.all(
-    images.map(
-      (img) =>
-        new Promise((resolve) => {
-          if (img.complete) resolve();
-          else img.onload = resolve;
-        })
-    )
-  ).then(() => {
-    const stripCanvas = document.createElement("canvas");
-    const w = images[0].width;
-    const gap = 12;
-    const h = images.reduce((sum, img) => sum + img.height + gap, gap);
-    stripCanvas.width = w;
-    stripCanvas.height = h;
-
-    const ctx = stripCanvas.getContext("2d");
-    ctx.fillStyle = "#F2ECDD";
-    ctx.fillRect(0, 0, w, h);
-
-    let y = gap;
-    images.forEach((img) => {
-      ctx.drawImage(img, 0, y);
-      y += img.height + gap;
-    });
-
-    downloadBtn.href = stripCanvas.toDataURL("image/png");
-    downloadBtn.hidden = false;
   });
 }
 
@@ -285,106 +263,149 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function captureOnePhoto() {
+  const slotW = 480;
+  const slotH = Math.round(slotW / state.layout.ratio);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = slotW;
+  canvas.height = slotH;
+  const ctx = canvas.getContext("2d");
+  ctx.filter = state.filter.css;
+
+  // Center-crop video ke rasio slot, sekaligus mirror horizontal
+  const vw = videoCapture.videoWidth;
+  const vh = videoCapture.videoHeight;
+  const videoRatio = vw / vh;
+  const targetRatio = slotW / slotH;
+  let sx, sy, sw, sh;
+  if (videoRatio > targetRatio) {
+    sh = vh;
+    sw = vh * targetRatio;
+    sx = (vw - sw) / 2;
+    sy = 0;
+  } else {
+    sw = vw;
+    sh = vw / targetRatio;
+    sx = 0;
+    sy = (vh - sh) / 2;
+  }
+
+  ctx.translate(slotW, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(videoCapture, sx, sy, sw, sh, 0, 0, slotW, slotH);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  const img = new Image();
+  img.src = canvas.toDataURL("image/png");
+  state.capturedPhotos.push(img);
+
+  const thumb = document.createElement("img");
+  thumb.src = img.src;
+  el("thumbRow").appendChild(thumb);
+
+  if (state.capturedPhotos.length >= state.layout.count) {
+    el("manualCaptureBtn").hidden = true;
+    el("nextBtn").hidden = false;
+    el("captureStatus").textContent = "Semua foto sudah diambil";
+  } else {
+    updateCaptureStatus();
+    if (state.timerMode === "manual") {
+      // tetap manual, tombol Ambil Foto sudah tampil
+    }
+  }
+}
+
+el("nextBtn").addEventListener("click", () => {
+  showScreen("screenResult");
+  renderResult();
+});
+
 /* ============================================================
-   BLUR TREND — deteksi gerakan tangan via MediaPipe
+   LAYAR 3 — RAKIT HASIL
    ============================================================ */
-async function initHandLandmarker() {
-  if (handLandmarker) return handLandmarker;
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-  );
-  handLandmarker = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-    },
-    runningMode: "VIDEO",
-    numHands: 1,
+const stickerImageCache = new Map();
+function loadStickerImage(src) {
+  if (stickerImageCache.has(src)) return stickerImageCache.get(src);
+  const p = new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
   });
-  return handLandmarker;
+  stickerImageCache.set(src, p);
+  return p;
 }
 
-async function startBlurTrend() {
-  blurLoopActive = true;
-  blurStatus.textContent = "Memuat deteksi tangan...";
-  try {
-    await initHandLandmarker();
-    blurStatus.textContent = "Gerakkan tangan untuk efek blur ✌️";
-    requestAnimationFrame(blurLoop);
-  } catch (err) {
-    blurStatus.textContent = "Deteksi tangan gagal dimuat.";
-    console.error(err);
-  }
+async function renderResult() {
+  const layout = state.layout;
+  const template = state.template;
+  const photos = state.capturedPhotos;
+
+  const slotW = 480;
+  const slotH = Math.round(slotW / layout.ratio);
+  const pad = 24, gap = 16, footer = 56;
+
+  let cols = 1, rows = layout.count;
+  if (layout.arrangement === "grid2x2") { cols = 2; rows = 2; }
+  if (layout.arrangement === "grid2x3") { cols = 2; rows = 3; }
+
+  const stripW = pad * 2 + slotW * cols + gap * (cols - 1);
+  const stripH = pad * 2 + slotH * rows + gap * (rows - 1) + footer;
+
+  const canvas = el("resultCanvas");
+  canvas.width = stripW;
+  canvas.height = stripH;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = template.frameColor;
+  ctx.fillRect(0, 0, stripW, stripH);
+  ctx.strokeStyle = template.borderColor;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, stripW - 6, stripH - 6);
+
+  photos.forEach((img, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = pad + col * (slotW + gap);
+    const y = pad + row * (slotH + gap);
+    ctx.drawImage(img, x, y, slotW, slotH);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(x, y, slotW, slotH);
+  });
+
+  ctx.fillStyle = template.textColor;
+  ctx.font = "600 20px Inter, sans-serif";
+  ctx.fillText("XII-5 · MAXIMA", pad, stripH - 22);
+
+  const stickerImgs = await Promise.all(template.stickers.map((s) => loadStickerImage(s.src)));
+  template.stickers.forEach((s, i) => {
+    const img = stickerImgs[i];
+    if (!img) return;
+    const size = (s.sizePct / 100) * stripW;
+    const x = (s.xPct / 100) * stripW;
+    const y = (s.yPct / 100) * stripH;
+    ctx.drawImage(img, x, y, size, size);
+  });
 }
 
-function stopBlurTrend() {
-  blurLoopActive = false;
-  cameraWrap.classList.remove("is-blurred");
-}
+el("downloadBtn").addEventListener("click", () => {
+  const canvas = el("resultCanvas");
+  const link = document.createElement("a");
+  link.download = "photobooth-xii5-maxima.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+});
 
-let presentFrames = 0;
-let absentFrames = 0;
-const ENTER_FRAMES = 3;
-const EXIT_FRAMES = 5;
-
-function blurLoop() {
-  if (!blurLoopActive || currentMode !== "blur") return;
-
-  if (video.readyState >= 2) {
-    const result = handLandmarker.detectForVideo(video, performance.now());
-    let isPeaceSign = false;
-
-    if (result.landmarks && result.landmarks.length > 0) {
-      isPeaceSign = detectPeaceSign(result.landmarks[0]);
-    }
-
-    if (isPeaceSign) {
-      presentFrames++;
-      absentFrames = 0;
-    } else {
-      absentFrames++;
-      presentFrames = 0;
-    }
-
-    const currentlyBlurred = cameraWrap.classList.contains("is-blurred");
-    let shouldBlur = currentlyBlurred;
-
-    if (!currentlyBlurred && presentFrames >= ENTER_FRAMES) {
-      shouldBlur = true;
-    } else if (currentlyBlurred && absentFrames >= EXIT_FRAMES) {
-      shouldBlur = false;
-    }
-
-    cameraWrap.classList.toggle("is-blurred", shouldBlur);
-    blurStatus.textContent = shouldBlur
-      ? "Pose terdeteksi ✌️ — blur aktif"
-      : "Gerakkan tangan untuk efek blur ✌️";
-  }
-
-  requestAnimationFrame(blurLoop);
-}
-
-function distance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function isFingerExtended(landmarks, tipIdx, pipIdx) {
-  const wrist = landmarks[0];
-  const distTip = distance(wrist, landmarks[tipIdx]);
-  const distPip = distance(wrist, landmarks[pipIdx]);
-  return distTip > distPip * 1.1;
-}
-
-function detectPeaceSign(landmarks) {
-  const indexExtended = isFingerExtended(landmarks, 8, 6);
-  const middleExtended = isFingerExtended(landmarks, 12, 10);
-  const ringExtended = isFingerExtended(landmarks, 16, 14);
-  const pinkyExtended = isFingerExtended(landmarks, 20, 18);
-
-  return indexExtended && middleExtended && !ringExtended && !pinkyExtended;
-}
+el("ulangBtn").addEventListener("click", () => {
+  showScreen("screenPrep");
+});
 
 /* ============================================================
    INIT
    ============================================================ */
+updateLayoutLabel();
+updateFilterLabel();
+updateThemeLabels();
 startCamera();

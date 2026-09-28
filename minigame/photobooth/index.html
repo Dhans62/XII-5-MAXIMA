@@ -6,64 +6,121 @@
 <title>Photobooth — XII-5 · MAXIMA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=1">
 </head>
 <body>
 
   <header class="topbar">
-    <a href="../../index.html" class="topbar__back">← Kembali</a>
-    <div class="topbar__mode">
-      <button id="modePhotobooth" class="mode-btn is-active">Photobooth</button>
-      <button id="modeBlur" class="mode-btn">Blur Trend</button>
-    </div>
+    <a href="../index.html" class="topbar__back">← Kembali</a>
+    <span class="topbar__title">Photobooth</span>
   </header>
 
-  <main class="stage">
-    <div class="camera-wrap" id="cameraWrap" data-theme="lucu">
+  <!-- ================= LAYAR 1: PERSIAPAN ================= -->
+  <section id="screenPrep" class="screen">
+    <div class="camera-card" id="cameraCardPrep">
       <video id="video" autoplay playsinline muted></video>
-      <div id="stickerLayer" class="sticker-layer"></div>
-      <canvas id="captureCanvas" hidden></canvas>
-      <div id="countdownOverlay" class="countdown-overlay" hidden></div>
-      <p id="blurStatus" class="blur-status" hidden>Gerakkan tangan untuk efek blur ✌️</p>
+      <div id="cameraError" class="camera-error" hidden>
+        <p>Kamera tidak bisa diakses.</p>
+        <p class="camera-error__hint">Pastikan izin kamera sudah diberikan lalu muat ulang halaman.</p>
+      </div>
     </div>
 
-    <aside class="panel">
-      <div class="panel__section">
-        <h3>Tema</h3>
-        <div class="theme-list">
-          <button class="theme-btn is-active" data-category="lucu">Lucu</button>
-          <button class="theme-btn" data-category="keren">Keren</button>
-          <button class="theme-btn" data-category="estetik">Estetik</button>
-        </div>
-        <div id="templateList" class="template-list"></div>
-      </div>
+    <p class="privacy-note">Foto diproses langsung di perangkatmu, tidak diunggah ke mana pun.</p>
 
-      <div class="panel__section" id="photoboothControls">
-        <h3>Mode Ambil Foto</h3>
-        <div class="option-row">
-          <label><input type="radio" name="captureMode" value="manual" checked> Manual</label>
-          <label><input type="radio" name="captureMode" value="auto"> Otomatis (5s)</label>
-        </div>
-        <h3>Jumlah Foto</h3>
-        <div class="option-row">
-          <select id="jumlahFoto">
-            <option value="1">1</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="6">6</option>
-          </select>
-        </div>
-        <button id="captureBtn" class="capture-btn">Ambil Foto</button>
-      </div>
+    <div class="chip-row" id="timerChips">
+      <button class="chip is-active" data-timer="manual">Manual</button>
+      <button class="chip" data-timer="3">3s</button>
+      <button class="chip" data-timer="5">5s</button>
+      <button class="chip" data-timer="10">10s</button>
+    </div>
 
-      <div class="panel__section">
-        <h3>Hasil</h3>
-        <div id="resultStrip" class="result-strip"></div>
-        <a id="downloadBtn" class="download-btn" hidden download="photobooth-xii5-maxima.png">Download Strip</a>
-      </div>
-    </aside>
-  </main>
+    <div class="option-btn-row">
+      <button class="option-btn" id="btnLayout">
+        <span class="option-btn__icon">▦</span>
+        <span id="layoutLabel">Layout</span>
+      </button>
+      <button class="option-btn" id="btnFilter">
+        <span class="option-btn__icon">◐</span>
+        <span id="filterLabel">Filter</span>
+      </button>
+      <button class="option-btn" id="btnThemePrep">
+        <span class="option-btn__icon">✦</span>
+        <span id="themeLabelPrep">Tema</span>
+      </button>
+    </div>
 
-<script type="module" src="js/main.js?v=3"></script>
+    <button id="mulaiFotoBtn" class="primary-btn">Mulai Foto</button>
+  </section>
+
+  <!-- ================= LAYAR 2: PENGAMBILAN ================= -->
+  <section id="screenCapture" class="screen" hidden>
+    <div class="camera-card" id="cameraCardCapture">
+      <video id="videoCapture" autoplay playsinline muted></video>
+      <div id="countdownOverlay" class="countdown-overlay" hidden></div>
+    </div>
+
+    <p id="captureStatus" class="capture-status">Foto 1 dari 4</p>
+
+    <div id="thumbRow" class="thumb-row"></div>
+
+    <button id="manualCaptureBtn" class="primary-btn">Ambil Foto</button>
+    <button id="nextBtn" class="primary-btn" hidden>Berikutnya</button>
+  </section>
+
+  <!-- ================= LAYAR 3: HASIL ================= -->
+  <section id="screenResult" class="screen" hidden>
+    <div class="result-preview-wrap">
+      <canvas id="resultCanvas"></canvas>
+    </div>
+
+    <button class="option-btn option-btn--wide" id="btnThemeResult">
+      <span class="option-btn__icon">✦</span>
+      <span id="themeLabelResult">Ganti Tema</span>
+    </button>
+
+    <div class="result-actions">
+      <button id="downloadBtn" class="primary-btn">Unduh</button>
+      <button id="ulangBtn" class="secondary-btn">Ambil Ulang</button>
+    </div>
+  </section>
+
+  <!-- ================= BOTTOM SHEET: LAYOUT ================= -->
+  <div id="sheetLayout" class="sheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__card">
+      <div class="sheet__header">
+        <h3>Pilih Layout</h3>
+        <button class="sheet__close" data-close-sheet>✕</button>
+      </div>
+      <div id="layoutGrid" class="layout-grid"></div>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: FILTER ================= -->
+  <div id="sheetFilter" class="sheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__card">
+      <div class="sheet__header">
+        <h3>Pilih Filter</h3>
+        <button class="sheet__close" data-close-sheet>✕</button>
+      </div>
+      <div id="filterGrid" class="filter-grid"></div>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: TEMA ================= -->
+  <div id="sheetTheme" class="sheet" hidden>
+    <div class="sheet__backdrop" data-close-sheet></div>
+    <div class="sheet__card">
+      <div class="sheet__header">
+        <h3>Pilih Tema</h3>
+        <button class="sheet__close" data-close-sheet>✕</button>
+      </div>
+      <div class="theme-category-row" id="themeCategoryRow"></div>
+      <div id="themeTemplateGrid" class="theme-template-grid"></div>
+    </div>
+  </div>
+
+<script type="module" src="js/main.js?v=1"></script>
 </body>
 </html>
