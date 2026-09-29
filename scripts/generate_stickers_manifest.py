@@ -20,7 +20,11 @@ import json
 import sys
 from pathlib import Path
 
-CATEGORIES = ["lucu", "lucu2", "keren", "estetik"]
+CATEGORIES = [
+"lucu", "lucu2", "lucu3",
+"keren",
+"estetik"
+]
 
 
 def main():
