@@ -19,6 +19,26 @@
   label { display:block; font-size:0.75rem; color:#6b6354; margin:0.5rem 0 0.15rem; }
   input[type=range] { width:100%; }
   input[type=text], select { width:100%; padding:0.4rem; border-radius:6px; border:1px solid var(--line); font-size:0.8rem; }
+  .color-row { display:flex; gap:0.5rem; align-items:center; }
+  .color-row input[type=color] { width:40px; height:34px; padding:2px; border-radius:6px; border:1px solid var(--line); flex-shrink:0; }
+  .color-row input[type=text] { flex:1; }
+  .sticker-head { display:flex; align-items:center; gap:0.6rem; }
+  .sticker-thumb { width:44px; height:44px; border-radius:8px; background:#eee repeating-conic-gradient(#ddd 0 25%, transparent 0 50%) 0 0/10px 10px; object-fit:contain; flex-shrink:0; }
+  .file-picker-row { display:flex; align-items:center; gap:0.5rem; }
+  .file-picker-current { flex:1; font-size:0.75rem; color:#6b6354; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-pick { padding:0.4rem 0.8rem; border-radius:8px; border:1px solid var(--gold); background:#fff; color:var(--gold); font-size:0.75rem; flex-shrink:0; }
+
+  .gallery-modal { position:fixed; inset:0; background:rgba(43,38,32,0.55); display:none; align-items:center; justify-content:center; z-index:100; padding:1rem; }
+  .gallery-modal.is-open { display:flex; }
+  .gallery-card { background:#fff; border-radius:14px; padding:1rem; max-width:420px; width:100%; max-height:80vh; overflow-y:auto; }
+  .gallery-tabs { display:flex; gap:0.4rem; margin-bottom:0.8rem; }
+  .gallery-tab { flex:1; padding:0.4rem; border-radius:999px; border:1px solid var(--line); background:#fff; font-size:0.75rem; }
+  .gallery-tab.is-active { background:var(--ink); color:var(--cream); }
+  .gallery-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.6rem; }
+  .gallery-item { border:1px solid var(--line); border-radius:10px; padding:0.4rem; background:#fff; cursor:pointer; }
+  .gallery-item img { width:100%; aspect-ratio:1; object-fit:contain; background:repeating-conic-gradient(#eee 0 25%, transparent 0 50%) 0 0/8px 8px; border-radius:6px; }
+  .gallery-empty { font-size:0.8rem; color:#8a8272; text-align:center; padding:1rem; }
+  .gallery-close { float:right; background:none; border:none; font-size:1rem; cursor:pointer; }
   .val { font-size:0.7rem; color:#6b6354; float:right; }
   button { cursor:pointer; }
   .btn { padding:0.6rem 1rem; border-radius:999px; border:none; background:var(--ink); color:var(--cream); font-size:0.8rem; margin-right:0.5rem; }
@@ -49,8 +69,18 @@
   <div class="controls">
     <div class="field-group">
       <h3>Frame</h3>
-      <label>Warna frame <input type="text" id="frameColor" value="#FFEBF0"></label>
-      <label>Warna border <input type="text" id="borderColor" value="#F5A0BE"></label>
+      <label>Warna frame
+        <div class="color-row">
+          <input type="color" id="frameColorPicker" value="#FFEBF0">
+          <input type="text" id="frameColor" value="#FFEBF0">
+        </div>
+      </label>
+      <label>Warna border
+        <div class="color-row">
+          <input type="color" id="borderColorPicker" value="#F5A0BE">
+          <input type="text" id="borderColor" value="#F5A0BE">
+        </div>
+      </label>
     </div>
 
     <div id="stickerControls"></div>
@@ -61,6 +91,14 @@
       <button class="btn" id="copyBtn">Salin</button>
       <textarea id="codeOutput" readonly></textarea>
     </div>
+  </div>
+</div>
+
+<div class="gallery-modal" id="galleryModal">
+  <div class="gallery-card">
+    <button class="gallery-close" id="galleryClose">✕</button>
+    <div class="gallery-tabs" id="galleryTabs"></div>
+    <div class="gallery-grid" id="galleryGrid"></div>
   </div>
 </div>
 
@@ -80,6 +118,69 @@ let stickers = [
   { src: "assets/stickers/lucu/cute-03.webp", xPct: 84, yPct: 46, sizePct: 15 },
   { src: "assets/stickers/lucu/cute-04.webp", xPct: -7, yPct: 71, sizePct: 19 },
 ];
+
+let manifest = { lucu: [], keren: [], estetik: [] };
+try {
+  const res = await fetch("assets/stickers/manifest.json");
+  manifest = await res.json();
+} catch (e) {
+  console.warn("manifest.json belum ada / gagal dimuat. Jalankan scripts/generate_stickers_manifest.py");
+}
+
+let galleryTargetIndex = null;
+let galleryActiveCategory = Object.keys(manifest).find((c) => manifest[c].length > 0) || "lucu";
+
+function openGallery(index) {
+  galleryTargetIndex = index;
+  renderGalleryTabs();
+  renderGalleryGrid();
+  document.getElementById("galleryModal").classList.add("is-open");
+}
+
+function renderGalleryTabs() {
+  const tabs = document.getElementById("galleryTabs");
+  tabs.innerHTML = "";
+  Object.keys(manifest).forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.className = "gallery-tab" + (cat === galleryActiveCategory ? " is-active" : "");
+    btn.textContent = `${cat} (${manifest[cat].length})`;
+    btn.addEventListener("click", () => {
+      galleryActiveCategory = cat;
+      renderGalleryTabs();
+      renderGalleryGrid();
+    });
+    tabs.appendChild(btn);
+  });
+}
+
+function renderGalleryGrid() {
+  const grid = document.getElementById("galleryGrid");
+  const files = manifest[galleryActiveCategory] || [];
+  if (files.length === 0) {
+    grid.innerHTML = `<div class="gallery-empty">Belum ada stiker di kategori ini.<br>Jalankan generate_stickers_manifest.py setelah menambah file.</div>`;
+    return;
+  }
+  grid.innerHTML = "";
+  files.forEach((filename) => {
+    const path = `assets/stickers/${galleryActiveCategory}/${filename}`;
+    const item = document.createElement("button");
+    item.className = "gallery-item";
+    item.innerHTML = `<img src="${path}" alt="${filename}">`;
+    item.addEventListener("click", () => {
+      stickers[galleryTargetIndex].src = path;
+      document.querySelector(`[data-current="${galleryTargetIndex}"]`).textContent = filename;
+      const thumb = document.querySelector(`[data-thumb="${galleryTargetIndex}"]`);
+      if (thumb) { thumb.style.opacity = 1; thumb.src = path; }
+      document.getElementById("galleryModal").classList.remove("is-open");
+      draw();
+    });
+    grid.appendChild(item);
+  });
+}
+
+document.getElementById("galleryClose").addEventListener("click", () => {
+  document.getElementById("galleryModal").classList.remove("is-open");
+});
 
 const imgCache = new Map();
 function loadImg(src) {
@@ -165,8 +266,16 @@ function renderControls() {
     const box = document.createElement("div");
     box.className = "field-group";
     box.innerHTML = `
-      <h3>Stiker ${i + 1} <button data-remove="${i}" style="float:right;background:none;border:none;color:#a55;font-size:0.75rem;">hapus</button></h3>
-      <label>File <input type="text" data-field="src" data-i="${i}" value="${s.src}"></label>
+      <div class="sticker-head">
+        <img class="sticker-thumb" data-thumb="${i}" src="${s.src}" onerror="this.style.opacity=0.2">
+        <h3 style="flex:1;margin:0;">Stiker ${i + 1}</h3>
+        <button data-remove="${i}" style="background:none;border:none;color:#a55;font-size:0.75rem;">hapus</button>
+      </div>
+      <label>File</label>
+      <div class="file-picker-row">
+        <span class="file-picker-current" data-current="${i}">${s.src.split("/").pop()}</span>
+        <button class="btn-pick" data-pick="${i}">Pilih dari galeri</button>
+      </div>
       <label>Posisi X <span class="val">${s.xPct}%</span>
         <input type="range" min="-20" max="100" value="${s.xPct}" data-field="xPct" data-i="${i}">
       </label>
@@ -185,6 +294,10 @@ function renderControls() {
       const i = +e.target.dataset.i;
       const field = e.target.dataset.field;
       stickers[i][field] = field === "src" ? e.target.value : Number(e.target.value);
+      if (field === "src") {
+        const thumb = wrap.querySelector(`[data-thumb="${i}"]`);
+        if (thumb) { thumb.style.opacity = 1; thumb.src = e.target.value; }
+      }
       const valEl = e.target.previousElementSibling;
       if (valEl && valEl.classList.contains("val")) valEl.textContent = e.target.value + "%";
       draw();
@@ -197,6 +310,10 @@ function renderControls() {
       renderControls();
       draw();
     });
+  });
+
+  wrap.querySelectorAll("[data-pick]").forEach((btn) => {
+    btn.addEventListener("click", () => openGallery(+btn.dataset.pick));
   });
 }
 
@@ -211,8 +328,26 @@ document.getElementById("layoutSelect").addEventListener("change", (e) => {
   draw();
 });
 
-document.getElementById("frameColor").addEventListener("input", (e) => { frameColor = e.target.value; draw(); });
-document.getElementById("borderColor").addEventListener("input", (e) => { borderColor = e.target.value; draw(); });
+document.getElementById("frameColor").addEventListener("input", (e) => {
+  frameColor = e.target.value;
+  document.getElementById("frameColorPicker").value = e.target.value;
+  draw();
+});
+document.getElementById("frameColorPicker").addEventListener("input", (e) => {
+  frameColor = e.target.value;
+  document.getElementById("frameColor").value = e.target.value;
+  draw();
+});
+document.getElementById("borderColor").addEventListener("input", (e) => {
+  borderColor = e.target.value;
+  document.getElementById("borderColorPicker").value = e.target.value;
+  draw();
+});
+document.getElementById("borderColorPicker").addEventListener("input", (e) => {
+  borderColor = e.target.value;
+  document.getElementById("borderColor").value = e.target.value;
+  draw();
+});
 
 document.getElementById("copyBtn").addEventListener("click", () => {
   navigator.clipboard.writeText(document.getElementById("codeOutput").value);
