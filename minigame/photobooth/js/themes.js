@@ -23,6 +23,19 @@ export const THEMES = {
           { src: "assets/stickers/lucu/cute-04.webp", xPct: -7, yPct: 71, sizePct: 19 },
         ],
       },
+     {
+       id: "V2",
+       label: "V2",
+       frameColor: "#FFEBF0",
+       borderColor: "#F5A0BE",
+       stickers: [
+          { src: "assets/stickers/lucu/cute-01.webp", xPct: 85, yPct: 0, sizePct: 12 },
+          { src: "assets/stickers/lucu/cute-15.webp", xPct: 3, yPct: 22, sizePct: 15 },
+          { src: "assets/stickers/lucu/cute-07.webp", xPct: 85, yPct: 46, sizePct: 15 },
+          { src: "assets/stickers/lucu/cute-04.webp", xPct: 0, yPct: 69, sizePct: 19 },
+          { src: "assets/stickers/lucu/cute-30.webp", xPct: 61, yPct: 92, sizePct: 15 },
+        ],
+      },
     ],
   },
   keren: {
