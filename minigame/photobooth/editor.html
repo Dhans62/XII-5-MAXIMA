@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editor Posisi Stiker</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --cream:#F2ECDD; --ink:#2B2620; --gold:#B8945A; --line:#e8dfc7; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink); font-family:"Inter",sans-serif; padding:1.25rem; }
+  h1 { font-family:"Fraunces",serif; font-size:1.2rem; margin:0 0 1rem; }
+  .layout { display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start; }
+  .stage-wrap { flex-shrink:0; }
+  #stage { border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
+  .controls { flex:1; min-width:280px; max-width:420px; }
+  .field-group { border:1px solid var(--line); border-radius:12px; padding:0.9rem; margin-bottom:0.9rem; background:#fff; }
+  .field-group h3 { margin:0 0 0.6rem; font-size:0.85rem; }
+  label { display:block; font-size:0.75rem; color:#6b6354; margin:0.5rem 0 0.15rem; }
+  input[type=range] { width:100%; }
+  input[type=text], select { width:100%; padding:0.4rem; border-radius:6px; border:1px solid var(--line); font-size:0.8rem; }
+  .val { font-size:0.7rem; color:#6b6354; float:right; }
+  button { cursor:pointer; }
+  .btn { padding:0.6rem 1rem; border-radius:999px; border:none; background:var(--ink); color:var(--cream); font-size:0.8rem; margin-right:0.5rem; }
+  textarea { width:100%; min-height:180px; font-family:monospace; font-size:0.75rem; padding:0.6rem; border-radius:8px; border:1px solid var(--line); margin-top:0.6rem; }
+  .add-sticker { border:1px dashed var(--gold); border-radius:10px; padding:0.6rem; text-align:center; font-size:0.8rem; color:var(--gold); background:transparent; width:100%; margin-top:0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>Editor Posisi Stiker (tidak perlu kamera)</h1>
+
+<div class="layout">
+  <div class="stage-wrap">
+    <canvas id="stage"></canvas>
+    <div style="margin-top:0.6rem;">
+      <label>Layout untuk pratinjau</label>
+      <select id="layoutSelect">
+        <option value="single">1 Foto</option>
+        <option value="strip2">2 Foto</option>
+        <option value="strip3">3 Foto</option>
+        <option value="strip4" selected>4 Foto Strip</option>
+        <option value="grid4">4 Foto Grid</option>
+        <option value="grid6">6 Foto Grid</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="field-group">
+      <h3>Frame</h3>
+      <label>Warna frame <input type="text" id="frameColor" value="#FFEBF0"></label>
+      <label>Warna border <input type="text" id="borderColor" value="#F5A0BE"></label>
+    </div>
+
+    <div id="stickerControls"></div>
+    <button class="add-sticker" id="addStickerBtn">+ Tambah stiker</button>
+
+    <div class="field-group" style="margin-top:1rem;">
+      <h3>Kode untuk themes.js</h3>
+      <button class="btn" id="copyBtn">Salin</button>
+      <textarea id="codeOutput" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { LAYOUTS, getLayout } from "./js/layouts.js";
+
+const stage = document.getElementById("stage");
+const ctx = stage.getContext("2d");
+const slotW = 480;
+
+let layout = getLayout("strip4");
+let frameColor = "#FFEBF0";
+let borderColor = "#F5A0BE";
+let stickers = [
+  { src: "assets/stickers/lucu/cute-01.webp", xPct: 74, yPct: -4, sizePct: 26 },
+  { src: "assets/stickers/lucu/cute-02.webp", xPct: -6, yPct: 21, sizePct: 17 },
+  { src: "assets/stickers/lucu/cute-03.webp", xPct: 84, yPct: 46, sizePct: 15 },
+  { src: "assets/stickers/lucu/cute-04.webp", xPct: -7, yPct: 71, sizePct: 19 },
+];
+
+const imgCache = new Map();
+function loadImg(src) {
+  if (imgCache.has(src)) return imgCache.get(src);
+  const p = new Promise((res) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => res(null);
+    img.src = src;
+  });
+  imgCache.set(src, p);
+  return p;
+}
+
+function dims() {
+  const slotH = Math.round(slotW / layout.ratio);
+  let cols = 1, rows = layout.count;
+  if (layout.arrangement === "grid2x2") { cols = 2; rows = 2; }
+  if (layout.arrangement === "grid2x3") { cols = 2; rows = 3; }
+  const pad = 24, gap = 16, footer = 56;
+  const stripW = pad * 2 + slotW * cols + gap * (cols - 1);
+  const stripH = pad * 2 + slotH * rows + gap * (rows - 1) + footer;
+  return { slotH, cols, rows, pad, gap, footer, stripW, stripH };
+}
+
+async function draw() {
+  const { slotH, cols, rows, pad, gap, stripW, stripH } = dims();
+  stage.width = stripW;
+  stage.height = stripH;
+  const maxDisplayW = 320;
+  stage.style.width = Math.min(maxDisplayW, stripW) + "px";
+  stage.style.height = (stage.style.width.replace("px","") * (stripH/stripW)) + "px";
+
+  ctx.fillStyle = frameColor;
+  ctx.fillRect(0, 0, stripW, stripH);
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, stripW - 6, stripH - 6);
+
+  for (let i = 0; i < layout.count; i++) {
+    const col = i % cols, row = Math.floor(i / cols);
+    const x = pad + col * (slotW + gap);
+    const y = pad + row * (slotH + gap);
+    ctx.fillStyle = "#c9c1ab";
+    ctx.fillRect(x, y, slotW, slotH);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(x, y, slotW, slotH);
+  }
+
+  ctx.fillStyle = "#333";
+  ctx.font = "600 20px Inter, sans-serif";
+  ctx.fillText("XII-5 · MAXIMA", pad, stripH - 22);
+
+  for (const s of stickers) {
+    const img = await loadImg(s.src);
+    if (!img) continue;
+    const size = (s.sizePct / 100) * stripW;
+    const x = (s.xPct / 100) * stripW;
+    const y = (s.yPct / 100) * stripH;
+    ctx.drawImage(img, x, y, size, size);
+  }
+
+  updateCode();
+}
+
+function updateCode() {
+  const lines = stickers.map(s =>
+    `          { src: "${s.src}", xPct: ${s.xPct}, yPct: ${s.yPct}, sizePct: ${s.sizePct} },`
+  ).join("\n");
+  document.getElementById("codeOutput").value =
+`frameColor: "${frameColor}",
+borderColor: "${borderColor}",
+stickers: [
+${lines}
+],`;
+}
+
+function renderControls() {
+  const wrap = document.getElementById("stickerControls");
+  wrap.innerHTML = "";
+  stickers.forEach((s, i) => {
+    const box = document.createElement("div");
+    box.className = "field-group";
+    box.innerHTML = `
+      <h3>Stiker ${i + 1} <button data-remove="${i}" style="float:right;background:none;border:none;color:#a55;font-size:0.75rem;">hapus</button></h3>
+      <label>File <input type="text" data-field="src" data-i="${i}" value="${s.src}"></label>
+      <label>Posisi X <span class="val">${s.xPct}%</span>
+        <input type="range" min="-20" max="100" value="${s.xPct}" data-field="xPct" data-i="${i}">
+      </label>
+      <label>Posisi Y <span class="val">${s.yPct}%</span>
+        <input type="range" min="-20" max="100" value="${s.yPct}" data-field="yPct" data-i="${i}">
+      </label>
+      <label>Ukuran <span class="val">${s.sizePct}%</span>
+        <input type="range" min="5" max="50" value="${s.sizePct}" data-field="sizePct" data-i="${i}">
+      </label>
+    `;
+    wrap.appendChild(box);
+  });
+
+  wrap.querySelectorAll("input[type=range], input[type=text]").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const i = +e.target.dataset.i;
+      const field = e.target.dataset.field;
+      stickers[i][field] = field === "src" ? e.target.value : Number(e.target.value);
+      const valEl = e.target.previousElementSibling;
+      if (valEl && valEl.classList.contains("val")) valEl.textContent = e.target.value + "%";
+      draw();
+    });
+  });
+
+  wrap.querySelectorAll("[data-remove]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      stickers.splice(+btn.dataset.remove, 1);
+      renderControls();
+      draw();
+    });
+  });
+}
+
+document.getElementById("addStickerBtn").addEventListener("click", () => {
+  stickers.push({ src: "assets/stickers/lucu/cute-01.webp", xPct: 40, yPct: 40, sizePct: 15 });
+  renderControls();
+  draw();
+});
+
+document.getElementById("layoutSelect").addEventListener("change", (e) => {
+  layout = getLayout(e.target.value);
+  draw();
+});
+
+document.getElementById("frameColor").addEventListener("input", (e) => { frameColor = e.target.value; draw(); });
+document.getElementById("borderColor").addEventListener("input", (e) => { borderColor = e.target.value; draw(); });
+
+document.getElementById("copyBtn").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("codeOutput").value);
+});
+
+renderControls();
+draw();
+</script>
+</body>
+</html>

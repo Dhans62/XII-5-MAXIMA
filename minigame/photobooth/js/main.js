@@ -31,6 +31,7 @@ const cameraError = el("cameraError");
    KAMERA
    ============================================================ */
 async function startCamera() {
+  cameraError.hidden = true;
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
@@ -43,6 +44,8 @@ async function startCamera() {
     console.error(err);
   }
 }
+
+el("retryCameraBtn")?.addEventListener("click", startCamera);
 
 function applyFilterToVideos() {
   video.style.filter = state.filter.css;
@@ -380,14 +383,25 @@ async function renderResult() {
   ctx.fillText("XII-5 · MAXIMA", pad, stripH - 22);
 
   const stickerImgs = await Promise.all(template.stickers.map((s) => loadStickerImage(s.src)));
+  let failedCount = 0;
   template.stickers.forEach((s, i) => {
     const img = stickerImgs[i];
-    if (!img) return;
+    if (!img) {
+      failedCount++;
+      console.warn(`Stiker gagal dimuat: ${s.src} (cek apakah file/folder sudah ada di repo)`);
+      return;
+    }
     const size = (s.sizePct / 100) * stripW;
     const x = (s.xPct / 100) * stripW;
     const y = (s.yPct / 100) * stripH;
     ctx.drawImage(img, x, y, size, size);
   });
+
+  if (failedCount > 0) {
+    ctx.fillStyle = "rgba(200,50,50,0.85)";
+    ctx.font = "12px Inter, sans-serif";
+    ctx.fillText(`${failedCount} stiker gagal dimuat — cek console (F12)`, pad, 18);
+  }
 }
 
 el("downloadBtn").addEventListener("click", () => {

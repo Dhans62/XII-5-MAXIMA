@@ -21,7 +21,11 @@
       <video id="video" autoplay playsinline muted></video>
       <div id="cameraError" class="camera-error" hidden>
         <p>Kamera tidak bisa diakses.</p>
-        <p class="camera-error__hint">Pastikan izin kamera sudah diberikan lalu muat ulang halaman.</p>
+        <p class="camera-error__hint">
+          Kemungkinan izin kamera pernah ditolak. Klik ikon gembok/info di sebelah alamat situs
+          di browser, aktifkan izin Kamera, lalu tekan tombol di bawah ini.
+        </p>
+        <button id="retryCameraBtn" class="camera-error__retry">Coba Lagi</button>
       </div>
     </div>
 
