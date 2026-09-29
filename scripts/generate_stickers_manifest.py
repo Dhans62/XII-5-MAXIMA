@@ -3,7 +3,7 @@ Membuat manifest.json berisi daftar file stiker per kategori,
 dibaca oleh editor.html untuk galeri pemilihan stiker (klik, bukan ketik).
 
 Cara pakai (dijalankan dari folder minigame/photobooth/):
-    python ../../scripts/generate_stickers_manifest.py
+    python ~/XII-5-MAXIMA/scripts/generate_stickers_manifest.py
 
 Struktur folder yang dipindai:
     assets/stickers/lucu/*.webp
@@ -20,7 +20,7 @@ import json
 import sys
 from pathlib import Path
 
-CATEGORIES = ["lucu", "keren", "estetik"]
+CATEGORIES = ["lucu", "lucu2", "keren", "estetik"]
 
 
 def main():

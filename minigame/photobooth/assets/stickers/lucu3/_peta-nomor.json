@@ -1,0 +1,33 @@
+{
+  "map": {
+    "prompt01_v1_seed1.jpg": "cute-01.webp",
+    "prompt02_v1_seed1.jpg": "cute-02.webp",
+    "prompt03_v1_seed1.jpg": "cute-03.webp",
+    "prompt04_v1_seed1.jpg": "cute-04.webp",
+    "prompt05_v1_seed1.jpg": "cute-05.webp",
+    "prompt06_v1_seed1.jpg": "cute-06.webp",
+    "prompt07_v1_seed1.jpg": "cute-07.webp",
+    "prompt08_v1_seed1.jpg": "cute-08.webp",
+    "prompt09_v1_seed1.jpg": "cute-09.webp",
+    "prompt10_v1_seed1.jpg": "cute-10.webp",
+    "prompt11_v1_seed1.jpg": "cute-11.webp",
+    "prompt12_v1_seed1.jpg": "cute-12.webp",
+    "prompt13_v1_seed1.jpg": "cute-13.webp",
+    "prompt14_v1_seed1.jpg": "cute-14.webp",
+    "prompt15_v1_seed1.jpg": "cute-15.webp",
+    "prompt16_v1_seed1.jpg": "cute-16.webp",
+    "prompt17_v1_seed1.jpg": "cute-17.webp",
+    "prompt18_v1_seed1.jpg": "cute-18.webp",
+    "prompt19_v1_seed1.jpg": "cute-19.webp",
+    "prompt20_v1_seed1.jpg": "cute-20.webp",
+    "prompt21_v1_seed1.jpg": "cute-21.webp",
+    "prompt22_v1_seed1.jpg": "cute-22.webp",
+    "prompt23_v1_seed1.jpg": "cute-23.webp",
+    "prompt24_v1_seed1.jpg": "cute-24.webp",
+    "prompt25_v1_seed1.jpg": "cute-25.webp",
+    "prompt26_v1_seed1.jpg": "cute-26.webp",
+    "prompt27_v1_seed1.jpg": "cute-27.webp",
+    "prompt28_v1_seed1.jpg": "cute-28.webp"
+  },
+  "next": 29
+}
