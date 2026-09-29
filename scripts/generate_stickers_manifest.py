@@ -1,30 +1,24 @@
 """
-Membuat manifest.json berisi daftar file stiker per kategori,
+Membuat manifest.json berisi daftar file stiker per folder,
 dibaca oleh editor.html untuk galeri pemilihan stiker (klik, bukan ketik).
 
 Cara pakai (dijalankan dari folder minigame/photobooth/):
-    python ~/XII-5-MAXIMA/scripts/generate_stickers_manifest.py
+    python ../../scripts/generate_stickers_manifest.py
 
-Struktur folder yang dipindai:
-    assets/stickers/lucu/*.webp
-    assets/stickers/keren/*.webp
-    assets/stickers/estetik/*.webp
+Semua SUBFOLDER di dalam assets/stickers/ dibaca otomatis, nama bebas
+(lucu, keren, estetik, lucu2, apapun). Tidak perlu daftar nama tetap.
 
 Hasil ditulis ke:
     assets/stickers/manifest.json
 
-Jalankan ulang skrip ini tiap kali menambah/menghapus file stiker.
+PENTING: manifest.json ini snapshot, bukan baca folder langsung tiap saat.
+Jalankan ulang skrip ini tiap kali menambah, menghapus, atau bikin folder
+baru berisi stiker — kalau tidak, galeri di editor masih pakai daftar lama.
 """
 
 import json
 import sys
 from pathlib import Path
-
-CATEGORIES = [
-"lucu", "lucu2", "lucu3",
-"keren",
-"estetik"
-]
 
 
 def main():
@@ -35,18 +29,20 @@ def main():
         sys.exit(1)
 
     manifest = {}
-    for cat in CATEGORIES:
-        folder = stickers_root / cat
-        if not folder.is_dir():
-            manifest[cat] = []
-            continue
+    subfolders = sorted(f for f in stickers_root.iterdir() if f.is_dir())
+
+    if not subfolders:
+        print("Tidak ada subfolder di assets/stickers/. Buat folder dulu, mis. assets/stickers/lucu/")
+        return
+
+    for folder in subfolders:
         files = sorted(f.name for f in folder.glob("*.webp"))
-        manifest[cat] = files
-        print(f"{cat}: {len(files)} stiker")
+        manifest[folder.name] = files
+        print(f"{folder.name}: {len(files)} stiker")
 
     out_path = stickers_root / "manifest.json"
     out_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    print(f"\nTersimpan ke {out_path}")
+    print(f"\nTersimpan ke {out_path} ({len(manifest)} folder terdeteksi)")
 
 
 if __name__ == "__main__":
