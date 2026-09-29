@@ -26,6 +26,7 @@ export const THEMES = {
       {
         id: "2",
         label: "",
+        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         stickers: [
@@ -39,6 +40,7 @@ export const THEMES = {
       {
         id: "3",
         label: "",
+        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         stickers: [
@@ -53,6 +55,7 @@ export const THEMES = {
       {
         id: "4",
         label: "",
+        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         stickers: [
@@ -67,6 +70,7 @@ export const THEMES = {
       {
         id: "5",
         label: "",
+        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         stickers: [
@@ -81,6 +85,7 @@ export const THEMES = {
       {
         id: "6",
         label: "",
+        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         stickers: [
@@ -95,6 +100,7 @@ export const THEMES = {
       {
         id: "",
         label: "",
+        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         stickers: [

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Blur Trend — XII-5 · MAXIMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="../index.html" class="topbar__back">← Kembali</a>
+    <span class="topbar__title">Blur Trend</span>
+  </header>
+
+  <main class="stage">
+    <div class="camera-wrap" id="cameraWrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="particleCanvas"></canvas>
+      <div id="colorWash" class="color-wash"></div>
+      <div id="vignetteOverlay" class="vignette-overlay"></div>
+      <div id="cameraError" class="camera-error" hidden>
+        <p>Kamera tidak bisa diakses.</p>
+        <p class="camera-error__hint">
+          Kemungkinan izin kamera pernah ditolak. Klik ikon gembok/info di sebelah alamat
+          situs di browser, aktifkan izin Kamera, lalu tekan tombol di bawah ini.
+        </p>
+        <button id="retryCameraBtn" class="camera-error__retry">Coba Lagi</button>
+      </div>
+      <p id="poseStatus" class="pose-status">Gerakkan tangan lalu bentuk ✌️</p>
+    </div>
+
+    <p class="privacy-note">Kamera diproses langsung di perangkatmu, tidak diunggah ke mana pun.</p>
+
+    <div class="mode-row" id="modeRow">
+      <button class="mode-chip is-active" data-mode="blur">Blur</button>
+      <button class="mode-chip" data-mode="hearts">Hati</button>
+      <button class="mode-chip" data-mode="confetti">Confetti</button>
+      <button class="mode-chip" data-mode="sparkle">Sparkle</button>
+      <button class="mode-chip" data-mode="colorwash">Color Wash</button>
+      <button class="mode-chip" data-mode="vignette">Vignette</button>
+    </div>
+  </main>
+
+<script type="module" src="js/main.js?v=1"></script>
+</body>
+</html>
