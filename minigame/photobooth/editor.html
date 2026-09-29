@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { --cream:#F2ECDD; --ink:#2B2620; --gold:#B8945A; --line:#e8dfc7; }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin:0; background:var(--cream); color:var(--ink); font-family:"Inter",sans-serif; padding:1.25rem; }
   h1 { font-family:"Fraunces",serif; font-size:1.2rem; margin:0 0 1rem; }
   .layout { display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start; }
@@ -48,7 +48,7 @@
 </head>
 <body>
 
-<h1>Editor Posisi Stiker</h1>
+<h1>Editor Posisi Stiker (tidak perlu kamera)</h1>
 
 <div class="layout">
   <div class="stage-wrap">
@@ -119,7 +119,7 @@ let stickers = [
   { src: "assets/stickers/lucu/cute-04.webp", xPct: -7, yPct: 71, sizePct: 19 },
 ];
 
-let manifest = { lucu: [], keren: [], estetik: [] };
+let manifest = {};
 try {
   const res = await fetch("assets/stickers/manifest.json");
   manifest = await res.json();
@@ -128,7 +128,7 @@ try {
 }
 
 let galleryTargetIndex = null;
-let galleryActiveCategory = Object.keys(manifest).find((c) => manifest[c].length > 0) || "lucu";
+let galleryActiveCategory = Object.keys(manifest)[0] || null;
 
 function openGallery(index) {
   galleryTargetIndex = index;
@@ -155,6 +155,10 @@ function renderGalleryTabs() {
 
 function renderGalleryGrid() {
   const grid = document.getElementById("galleryGrid");
+  if (!galleryActiveCategory) {
+    grid.innerHTML = `<div class="gallery-empty">Belum ada folder stiker terdeteksi.<br>Jalankan generate_stickers_manifest.py setelah membuat folder + menambah file.</div>`;
+    return;
+  }
   const files = manifest[galleryActiveCategory] || [];
   if (files.length === 0) {
     grid.innerHTML = `<div class="gallery-empty">Belum ada stiker di kategori ini.<br>Jalankan generate_stickers_manifest.py setelah menambah file.</div>`;
