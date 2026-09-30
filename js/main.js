@@ -12,14 +12,16 @@ const anggotaState = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const { anggota, strukturKelas, momen } = await loadAllData();
+  const { anggota, strukturKelas, momen, video } = await loadAllData();
 
   renderStrukturKelas(strukturKelas);
   renderAnggota(anggota);
   renderMomen(momen);
+  renderVideoMomen(video);
   renderFotoBersamaStats(anggota);
   setupLandingTransition();
   setupModal(anggota);
+  setupLightbox();
   setupCarouselControls();
   setupNavbarScrollState();
   setupScrollReveal();
@@ -34,14 +36,25 @@ function setupLandingTransition() {
   const mainContent = document.getElementById("main-content");
   const enterBtn = document.getElementById("enterSite");
 
+  const reveal = () => {
+    landing.remove();
+    mainContent.hidden = false;
+    document.body.style.overflow = "auto";
+    window.scrollTo(0, 0);
+  };
+
   enterBtn.addEventListener("click", () => {
-    landing.classList.add("is-leaving");
-    setTimeout(() => {
-      landing.remove();
-      mainContent.hidden = false;
-      mainContent.classList.add("is-visible");
-      document.body.style.overflow = "auto";
-    }, 650);
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (document.startViewTransition && !calm) {
+      // foto landing "pindah" menjadi frame di section Foto Bersama
+      document.startViewTransition(reveal);
+    } else {
+      landing.classList.add("is-leaving");
+      setTimeout(() => {
+        reveal();
+        mainContent.classList.add("is-visible");
+      }, 650);
+    }
   });
 
   document.body.style.overflow = "hidden";
@@ -343,7 +356,7 @@ function renderMomen(momenData) {
     group.innerHTML = `
       <h3 class="momen-group__title">${formatMomenTitle(key)}</h3>
       <div class="momen-masonry">
-        ${photos.map((src) => `<img src="public/images/${src}" alt="Momen ${formatMomenTitle(key)}" loading="lazy">`).join("")}
+        ${photos.map((p) => buildMomenImg(p, key)).join("")}
       </div>
     `;
     container.appendChild(group);
@@ -360,4 +373,93 @@ function formatMomenTitle(key) {
   const semNum = parts[semIndex + 1];
   const kelasNum = parts[kelasIndex + 1];
   return `Semester ${semNum} · Kelas ${kelasNum}`;
+}
+
+/* ============================================================
+   LIGHTBOX MOMEN
+   ============================================================ */
+function setupLightbox() {
+  const box = document.getElementById("lightbox");
+  const img = document.getElementById("lightboxImg");
+  const count = document.getElementById("lightboxCount");
+  let list = [];
+  let idx = 0;
+
+  const show = (i) => {
+    idx = (i + list.length) % list.length;
+    img.src = list[idx].src;
+    count.textContent = `${idx + 1} / ${list.length}`;
+  };
+  const close = () => {
+    box.hidden = true;
+    document.body.style.overflow = "auto";
+  };
+
+  document.getElementById("momenContainer").addEventListener("click", (e) => {
+    const t = e.target.closest("img");
+    if (!t) return;
+    list = [...t.closest(".momen-masonry").querySelectorAll("img")];
+    box.hidden = false;
+    document.body.style.overflow = "hidden";
+    show(list.indexOf(t));
+  });
+
+  box.querySelector(".lightbox__prev").addEventListener("click", () => show(idx - 1));
+  box.querySelector(".lightbox__next").addEventListener("click", () => show(idx + 1));
+  box.querySelector(".lightbox__close").addEventListener("click", close);
+  box.addEventListener("click", (e) => { if (e.target === box) close(); });
+
+  document.addEventListener("keydown", (e) => {
+    if (box.hidden) return;
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowLeft") show(idx - 1);
+    if (e.key === "ArrowRight") show(idx + 1);
+  });
+
+  let x0 = 0;
+  box.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  box.addEventListener("touchend", (e) => {
+    const d = e.changedTouches[0].clientX - x0;
+    if (Math.abs(d) > 50) show(d < 0 ? idx + 1 : idx - 1);
+  }, { passive: true });
+}
+
+/* ============================================================
+   VIDEO MOMEN — hanya tampil jika video.json terisi DAN file ada
+   ============================================================ */
+async function renderVideoMomen(video) {
+  const frame = document.getElementById("momenVideo");
+  if (!frame || !video || !video.src) return;
+
+  try {
+    const res = await fetch(video.src, { method: "HEAD" });
+    if (!res.ok) return;
+  } catch {
+    return;
+  }
+
+  const el = frame.querySelector("video");
+  if (video.poster) {
+    el.poster = video.poster;
+    el.preload = "none";
+    el.src = video.src;
+  } else {
+    el.preload = "metadata";
+    el.src = `${video.src}#t=0.1`;
+  }
+
+  const cap = frame.querySelector(".video-frame__caption");
+  cap.textContent = video.judul || "";
+  cap.hidden = !video.judul;
+  frame.hidden = false;
+}
+
+/* Mendukung dua format momen.json: string lama atau {src, w, h} dari skrip baru */
+function buildMomenImg(item, key) {
+  const src = typeof item === "string" ? item : item.src;
+  const sized = typeof item === "object" && item.w && item.h;
+  const dims = sized
+    ? `width="${item.w}" height="${item.h}"`
+    : `style="aspect-ratio:4/5" onload="this.style.aspectRatio='auto'"`;
+  return `<img src="public/images/${src}" alt="Momen ${formatMomenTitle(key)}" loading="lazy" decoding="async" ${dims}>`;
 }

@@ -5,11 +5,12 @@
  */
 
 async function loadAllData() {
-  const [anggota, strukturKelas, momen] = await Promise.all([
+  const [anggota, strukturKelas, momen, video] = await Promise.all([
     fetch("data/anggota.json").then((res) => res.json()),
     fetch("data/struktur-kelas.json").then((res) => res.json()),
     fetch("data/momen.json").then((res) => res.json()).catch(() => ({})),
+    fetch("data/video.json").then((res) => res.json()).catch(() => ({})),
   ]);
 
-  return { anggota, strukturKelas, momen };
+  return { anggota, strukturKelas, momen, video };
 }
