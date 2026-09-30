@@ -21,13 +21,21 @@
     color: var(--ink); font-weight: 500; transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   a.card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(43,38,32,0.12); }
+  a.card { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+  a.card svg { flex-shrink: 0; }
   a.back { margin-top: 1rem; font-size: 0.85rem; color: var(--gold); text-decoration: none; }
 </style>
 </head>
 <body>
   <h1>Mini Game — XII-5 · MAXIMA</h1>
-  <a class="card" href="photobooth/index.html">Photobooth</a>
-  <a class="card" href="blur-trend/index.html">Blur Trend</a>
+  <a class="card" href="photobooth/index.html">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l2-3h4l2 3"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+    Photobooth
+  </a>
+  <a class="card" href="blur-trend/index.html">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 10c0-3-2.5-6-6-6S6 7 6 10c0 4 3 6 3 9h6c0-3 3-5 3-9z"/><path d="M9.5 22h5" stroke-linecap="round"/></svg>
+    Blur Trend
+  </a>
   <a class="back" href="../index.html">← Kembali ke situs utama</a>
 </body>
 </html>

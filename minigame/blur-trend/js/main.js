@@ -26,15 +26,22 @@ let lastSparkleSpawn = 0;
    KAMERA
    ============================================================ */
 async function startCamera() {
-  cameraError.hidden = true;
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((t) => t.stop());
+    mediaStream = null;
+  }
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
       audio: false,
     });
     video.srcObject = mediaStream;
+    cameraError.hidden = true;
   } catch (err) {
-    cameraError.hidden = false;
+    // Jangan timpa status kalau video ini sudah pernah dapat gambar (kamera sebenarnya jalan)
+    if (video.readyState < 2) {
+      cameraError.hidden = false;
+    }
     console.error(err);
   }
 }
@@ -132,7 +139,7 @@ function detectionLoop() {
     }
 
     cameraWrap.classList.toggle("is-triggered", isTriggered);
-    poseStatus.textContent = isTriggered ? "Pose terdeteksi ✌️" : "Gerakkan tangan lalu bentuk ✌️";
+    poseStatus.textContent = isTriggered ? "Pose terdeteksi" : "Gerakkan tangan lalu bentuk pose dua jari";
 
     const justStarted = isTriggered && !wasTriggered;
     handleModeFrame(justStarted, handPos);

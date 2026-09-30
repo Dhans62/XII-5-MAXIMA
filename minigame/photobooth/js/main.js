@@ -31,7 +31,10 @@ const cameraError = el("cameraError");
    KAMERA
    ============================================================ */
 async function startCamera() {
-  cameraError.hidden = true;
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((t) => t.stop());
+    mediaStream = null;
+  }
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
@@ -39,8 +42,11 @@ async function startCamera() {
     });
     video.srcObject = mediaStream;
     videoCapture.srcObject = mediaStream;
+    cameraError.hidden = true;
   } catch (err) {
-    cameraError.hidden = false;
+    if (video.readyState < 2) {
+      cameraError.hidden = false;
+    }
     console.error(err);
   }
 }
