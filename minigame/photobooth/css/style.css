@@ -52,6 +52,10 @@ button { font-family: inherit; }
   gap: 1rem;
 }
 
+.screen[hidden] {
+  display: none;
+}
+
 /* CAMERA CARD — kotak persegi panjang di tengah, bukan fullscreen */
 .camera-card {
   position: relative;
@@ -81,6 +85,10 @@ button { font-family: inherit; }
   padding: 1.5rem;
   background: #1a1a1a;
   color: #fff;
+}
+
+.camera-error[hidden] {
+  display: none;
 }
 
 .camera-error__hint {
