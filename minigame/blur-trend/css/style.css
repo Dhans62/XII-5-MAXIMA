@@ -64,11 +64,12 @@ body {
   transition: filter 0.2s ease, transform 0.3s ease;
 }
 
-.camera-wrap.is-triggered.mode-blur video {
+.camera-wrap.is-triggered video {
   filter: blur(16px);
 }
 
 .camera-wrap.is-triggered.mode-vignette video {
+  filter: blur(16px);
   transform: scaleX(-1) scale(1.08);
 }
 
