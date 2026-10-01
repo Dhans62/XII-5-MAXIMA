@@ -16,8 +16,15 @@ let cameraStarting = false;
 
 let presentFrames = 0;
 let absentFrames = 0;
-const ENTER_FRAMES = 3;
-const EXIT_FRAMES = 4;
+let presentSince = 0;
+let absentSince = 0;
+/* Pose dianggap mulai/selesai kalau bertahan minimal sekian ms DAN terlihat di minimal sekian
+   frame beruntun. Batas waktu menjaga perilaku di perangkat cepat (30 fps ~ 3 / 4 frame seperti
+   dulu); batas frame menjaga satu frame meleset tidak langsung memicu di perangkat lambat. */
+const ENTER_MS = 50;
+const ENTER_MIN_FRAMES = 2;
+const EXIT_MS = 80;
+const EXIT_MIN_FRAMES = 2;
 let isTriggered = false;
 
 /* Pengukur performa: buka halaman dengan ?debug=1. Tidak aktif secara default. */
@@ -26,6 +33,8 @@ let dbgEl = null;
 let dbgMsAvg = 0;
 let dbgCount = 0;
 let dbgFps = 0;
+let dbgRaf = 0;
+let dbgRafFps = 0;
 let dbgWindowStart = performance.now();
 let dbgWasPose = false;
 let dbgRawStart = 0;
@@ -96,7 +105,7 @@ async function startCamera() {
     cameraStarting = false;
     // Stream lama sudah dimatikan di atas, jadi gagal di sini berarti memang tidak ada kamera
     cameraError.hidden = false;
-    console.error(err);
+    console.error("Kamera gagal:", err.name, err.message);
   }
 }
 document.getElementById("retryCameraBtn").addEventListener("click", startCamera);
@@ -140,18 +149,53 @@ cameraWrap.classList.add(`mode-${currentMode}`);
 /* ============================================================
    DETEKSI POSE (MediaPipe Hand Landmarker)
    ============================================================ */
-async function initHandLandmarker() {
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-  );
-  handLandmarker = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-    },
+const MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+// Default tetap CPU. Untuk uji coba GPU: tambahkan ?delegate=gpu di URL (jatuh ke CPU kalau gagal).
+const WANT_GPU = new URLSearchParams(location.search).get("delegate") === "gpu";
+let visionFileset = null;
+let activeDelegate = "CPU";
+let fallingBack = false;
+
+function createLandmarker(delegate) {
+  const baseOptions = { modelAssetPath: MODEL_URL };
+  if (delegate === "GPU") baseOptions.delegate = "GPU";
+  return HandLandmarker.createFromOptions(visionFileset, {
+    baseOptions,
     runningMode: "VIDEO",
     numHands: 1,
   });
+}
+
+async function initHandLandmarker() {
+  visionFileset = await FilesetResolver.forVisionTasks(WASM_URL);
+  if (WANT_GPU) {
+    try {
+      handLandmarker = await createLandmarker("GPU");
+      activeDelegate = "GPU";
+      return;
+    } catch (err) {
+      console.warn("Delegate GPU gagal, pakai CPU:", err.name, err.message);
+    }
+  }
+  handLandmarker = await createLandmarker("CPU");
+  activeDelegate = "CPU";
+}
+
+// Dipanggil kalau deteksi GPU melempar error saat berjalan
+async function fallbackToCpu() {
+  if (fallingBack) return;
+  fallingBack = true;
+  const old = handLandmarker;
+  handLandmarker = null; // loop deteksi berhenti sementara sampai siap
+  try { old?.close(); } catch (_) { /* abaikan */ }
+  try {
+    handLandmarker = await createLandmarker("CPU");
+    activeDelegate = "CPU (cadangan)";
+  } catch (err) {
+    console.error("Gagal pindah ke CPU:", err.name, err.message);
+  }
 }
 
 function distance(a, b) {
@@ -182,9 +226,18 @@ function handScreenPosition(landmarks) {
 }
 
 function detectionLoop() {
+  if (DEBUG) dbgRaf++;
   if (mediaStream && video.readyState >= 2 && handLandmarker) {
     const dbgT0 = performance.now();
-    const result = handLandmarker.detectForVideo(video, dbgT0);
+    let result;
+    try {
+      result = handLandmarker.detectForVideo(video, dbgT0);
+    } catch (err) {
+      console.error("Deteksi gagal:", err.name, err.message);
+      if (activeDelegate === "GPU") fallbackToCpu();
+      requestAnimationFrame(detectionLoop);
+      return;
+    }
     if (DEBUG) {
       const dt = performance.now() - dbgT0;
       dbgMsAvg = dbgMsAvg ? dbgMsAvg * 0.9 + dt * 0.1 : dt;
@@ -198,18 +251,21 @@ function detectionLoop() {
       if (isPeaceSign) handPos = handScreenPosition(result.landmarks[0]);
     }
 
+    const frameNow = performance.now();
     if (isPeaceSign) {
+      if (presentFrames === 0) presentSince = frameNow;
       presentFrames++;
       absentFrames = 0;
     } else {
+      if (absentFrames === 0) absentSince = frameNow;
       absentFrames++;
       presentFrames = 0;
     }
 
     const wasTriggered = isTriggered;
-    if (!isTriggered && presentFrames >= ENTER_FRAMES) {
+    if (!isTriggered && presentFrames >= ENTER_MIN_FRAMES && frameNow - presentSince >= ENTER_MS) {
       isTriggered = true;
-    } else if (isTriggered && absentFrames >= EXIT_FRAMES) {
+    } else if (isTriggered && absentFrames >= EXIT_MIN_FRAMES && frameNow - absentSince >= EXIT_MS) {
       isTriggered = false;
     }
 
@@ -228,12 +284,16 @@ function detectionLoop() {
       if (wasTriggered && !isTriggered) dbgExitMs = now - dbgRawEnd;
       if (now - dbgWindowStart >= 1000) {
         dbgFps = (dbgCount * 1000) / (now - dbgWindowStart);
+        dbgRafFps = (dbgRaf * 1000) / (now - dbgWindowStart);
+        dbgRaf = 0;
         dbgCount = 0;
         dbgWindowStart = now;
       }
       const f = (n) => (n == null ? "-" : Math.round(n) + " ms");
       dbgEl.textContent =
+        `delegate: ${activeDelegate}\n` +
         `deteksi: ${dbgMsAvg.toFixed(0)} ms/frame, ${dbgFps.toFixed(1)} fps\n` +
+        `layar (rAF): ${dbgRafFps.toFixed(1)} fps\n` +
         `video: ${video.videoWidth}x${video.videoHeight}\n` +
         `pose mentah: ${isPeaceSign ? "ya" : "tidak"} (hadir ${presentFrames}, absen ${absentFrames})\n` +
         `lama sampai aktif: ${f(dbgEnterMs)}\n` +
@@ -247,14 +307,18 @@ function detectionLoop() {
 /* ============================================================
    DISPATCH PER MODE
    ============================================================ */
+// Berapa partikel yang "jatuh tempo" sejak spawn terakhir (maks. cap, supaya tidak menyembur)
+function dueSpawns(last, now, interval, cap = 3) {
+  return Math.min(cap, Math.floor((now - last) / interval));
+}
+
 function handleModeFrame(justStarted, handPos) {
   const now = performance.now();
 
   if (currentMode === "hearts" && isTriggered) {
-    if (now - lastHeartSpawn > 180) {
-      spawnHeart(handPos);
-      lastHeartSpawn = now;
-    }
+    const n = dueSpawns(lastHeartSpawn, now, 180);
+    for (let i = 0; i < n; i++) spawnHeart(handPos);
+    if (n > 0) lastHeartSpawn = now;
   }
 
   if (currentMode === "confetti" && justStarted) {
@@ -262,10 +326,9 @@ function handleModeFrame(justStarted, handPos) {
   }
 
   if (currentMode === "sparkle" && isTriggered) {
-    if (now - lastSparkleSpawn > 60) {
-      spawnSparkle(handPos);
-      lastSparkleSpawn = now;
-    }
+    const n = dueSpawns(lastSparkleSpawn, now, 60);
+    for (let i = 0; i < n; i++) spawnSparkle(handPos);
+    if (n > 0) lastSparkleSpawn = now;
   }
 
   if (currentMode === "colorwash" && justStarted) {
@@ -337,23 +400,31 @@ function drawHeart(x, y, size, alpha) {
   ctx.restore();
 }
 
+let lastParticleTime = performance.now();
+
 function updateAndDrawParticles() {
+  // dt dalam satuan "frame 60 fps": gerak sama di layar 30/60/120 Hz dan saat main thread sibuk.
+  // Dibatasi 12 supaya tidak melompat jauh setelah tab lama tersembunyi.
+  const nowT = performance.now();
+  const dt = Math.min((nowT - lastParticleTime) / (1000 / 60), 12);
+  lastParticleTime = nowT;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   particles = particles.filter((p) => p.life > 0);
 
   particles.forEach((p) => {
     if (p.type === "heart") {
-      p.y += p.vy;
-      p.x += p.drift;
-      p.life -= 0.012;
+      p.y += p.vy * dt;
+      p.x += p.drift * dt;
+      p.life -= 0.012 * dt;
       drawHeart(p.x, p.y, p.size, Math.max(p.life, 0));
     } else if (p.type === "confetti") {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.12; // gravitasi ringan
-      p.spin += p.spinSpeed;
-      p.life -= 0.02;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 0.12 * dt; // gravitasi ringan
+      p.spin += p.spinSpeed * dt;
+      p.life -= 0.02 * dt;
       ctx.save();
       ctx.globalAlpha = Math.max(p.life, 0);
       ctx.translate(p.x, p.y);
@@ -362,7 +433,7 @@ function updateAndDrawParticles() {
       ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
       ctx.restore();
     } else if (p.type === "sparkle") {
-      p.life -= 0.04;
+      p.life -= 0.04 * dt;
       ctx.save();
       ctx.globalAlpha = Math.max(p.life, 0);
       ctx.fillStyle = "#FFF4C2";
