@@ -400,7 +400,7 @@ h1, h2, h3 {
 .carousel__slide {
   grid-area: 1 / 1;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, auto);
   gap: 1rem;
   padding: 0 0.25rem;
@@ -415,11 +415,11 @@ h1, h2, h3 {
 }
 
 @media (min-width: 600px) {
-  .carousel__slide { grid-template-columns: repeat(3, 1fr); }
+  .carousel__slide { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1024px) {
-  .carousel__slide { grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(2, auto); }
+  .carousel__slide { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(2, auto); }
 }
 
 .carousel__arrow {
@@ -448,6 +448,7 @@ h1, h2, h3 {
 
 .anggota-card {
   cursor: pointer;
+  min-width: 0;
 }
 
 .anggota-card__media {
@@ -526,6 +527,7 @@ h1, h2, h3 {
 }
 
 .anggota-card__nama {
+  overflow-wrap: anywhere;
   margin-top: 0.5rem;
   font-size: 0.85rem;
   text-align: center;
@@ -709,7 +711,11 @@ h1, h2, h3 {
 }
 
 .modal__info {
+  flex: 1;
+  min-width: 0;
   padding: 1.5rem;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .modal__absen {
@@ -879,3 +885,9 @@ body { counter-reset: sec; }
 .video-frame__tape--r { right: 8%; transform: rotate(5deg); background: rgba(127,166,196,0.6); }
 
 .momen-masonry img { height: auto; }
+
+/* Baris level 3 dibatasi 3 kartu per baris supaya 6 orang selalu 3+3, bukan 5+1 / 4+2 */
+.struktur-row--level-3 { max-width: calc(3 * 130px + 2 * 1.25rem); }
+@media (min-width: 1024px) {
+  .struktur-row--level-3 { max-width: calc(3 * 160px + 2 * 2rem); }
+}

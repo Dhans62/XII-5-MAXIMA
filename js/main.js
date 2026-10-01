@@ -113,7 +113,7 @@ function renderStrukturKelas(data) {
     if (!people.length) return;
 
     const row = document.createElement("div");
-    row.className = "struktur-row";
+    row.className = `struktur-row struktur-row--level-${level}`;
 
     people.forEach((person, i) => {
       row.appendChild(buildStrukturCard(person, level, i));
@@ -463,3 +463,30 @@ function buildMomenImg(item, key) {
     : `style="aspect-ratio:4/5" onload="this.style.aspectRatio='auto'"`;
   return `<img src="public/images/${src}" alt="Momen ${formatMomenTitle(key)}" loading="lazy" decoding="async" ${dims}>`;
 }
+
+/* ============================================================
+   FALLBACK FOTO ORANG — siluet netral jika foto belum ada / salah nama
+   (hanya untuk foto struktur, anggota, dan modal; foto momen tidak diganti)
+   ============================================================ */
+const PHOTO_FALLBACK =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'>" +
+      "<rect width='300' height='400' fill='#E8DFC7'/>" +
+      "<circle cx='150' cy='150' r='52' fill='#D6C9A6'/>" +
+      "<path d='M50 400C50 300 100 260 150 260S250 300 250 400Z' fill='#D6C9A6'/>" +
+    "</svg>"
+  );
+
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (!img.matches(".struktur-card__photo, .anggota-card__photo, .modal__photo")) return;
+    if (img.dataset.fallback) return;
+    img.dataset.fallback = "1";
+    img.src = PHOTO_FALLBACK;
+  },
+  true
+);
