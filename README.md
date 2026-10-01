@@ -1,55 +1,56 @@
 # XII-5 MAXIMA
 
-Website album kenangan untuk kelas XII-5 (MAXIMA), SMAN 1 Prambon, tahun ajaran 2026/2027.
-Dibuat tanpa framework dan tanpa proses build: HTML, CSS, dan JavaScript murni, dengan
-seluruh konten dikendalikan lewat berkas JSON.
+A memory album website for class XII-5 (MAXIMA) at SMAN 1 Prambon, academic year 2026/2027.
+Built with plain HTML, CSS, and JavaScript: no framework and no build step. All content is
+driven by JSON files. The site itself is in Indonesian.
 
-**Demo:** https://dhans62.github.io/XII-5-MAXIMA/
+**Live demo:** https://dhans62.github.io/XII-5-MAXIMA/
 
-## Gambaran
+## Overview
 
-Situs ini menampilkan foto bersama, struktur kelas, profil 34 anggota, dan kumpulan momen
-per semester. Tampilannya mengikuti metafora album foto fisik: kertas krem, cetakan
-berselotip, dan bingkai putih. Prioritas utama adalah tampilan di ponsel, dengan komposisi
-terpisah untuk desktop.
+The site presents the class photo, the class structure, 34 member profiles, and a gallery of
+moments grouped by semester. The visual language follows a physical photo album: cream paper,
+taped prints, and white photo borders. It is designed mobile-first, with a separate
+composition for desktop.
 
-## Fitur
+## Features
 
-- **Halaman pembuka dengan transisi bersama.** Foto di halaman pembuka berpindah menjadi
-  bingkai di halaman utama menggunakan View Transitions API. Browser yang belum mendukung,
-  atau pengguna dengan preferensi *reduced motion*, mendapat transisi pudar biasa.
-- **Struktur kelas berjenjang** dengan susunan yang tetap seimbang di semua lebar layar.
-- **Carousel anggota** berbasis transisi pudar, dengan auto-play yang berhenti saat disentuh,
-  serta modal detail yang menyesuaikan sisi foto dengan posisi kartu.
-- **Galeri momen** per semester dengan tata letak masonry untuk foto potret dan lanskap,
-  ditambah lightbox yang mendukung geser (swipe), navigasi keyboard, dan penghitung foto.
-- **Video momen opsional.** Bingkai video hanya muncul jika `data/video.json` terisi dan
-  berkas videonya ada; jika tidak, bagian ini tidak ditampilkan sama sekali.
-- **Foto pengganti otomatis.** Foto orang yang gagal dimuat diganti siluet netral.
-- **Mini Game** (halaman terpisah): Photobooth berbasis kamera dan efek visual live dengan
-  deteksi pose tangan (MediaPipe) yang berjalan sepenuhnya di sisi klien.
+- **Landing page with a shared-element transition.** The landing photo moves into its frame on
+  the main page using the View Transitions API. Browsers without support, and users who prefer
+  reduced motion, get a plain fade.
+- **Tiered class structure** that stays balanced at every screen width.
+- **Member carousel** with fade transitions and auto-play that pauses on touch, plus a detail
+  modal whose photo side follows the position of the clicked card.
+- **Moments gallery** per semester using a masonry layout for mixed portrait and landscape
+  photos, with a lightbox that supports swipe, keyboard navigation, and a photo counter.
+- **Optional moments video.** The video frame only appears when `data/video.json` is filled in
+  and the file exists; otherwise the section is omitted entirely.
+- **Automatic photo fallback.** Person photos that fail to load are replaced by a neutral
+  silhouette.
+- **Mini Games** (separate pages): a camera-based photobooth and a live visual effect driven by
+  hand-pose detection (MediaPipe) that runs entirely client-side.
 
-## Teknologi dan teknik
+## Tech and techniques
 
-| Area | Pendekatan |
+| Area | Approach |
 | --- | --- |
-| Stack | HTML5, CSS3 (custom properties, grid, flex), JavaScript ES modern; tanpa framework |
-| Konten | Berkas JSON di `data/`, dimuat lewat `fetch`, tanpa backend |
-| Animasi | `IntersectionObserver` untuk scroll-reveal, View Transitions API, CSS transition |
-| Deteksi pose | MediaPipe, dijalankan di browser |
-| Aset | Skrip Python (Pillow) untuk konversi ke WebP dan pembuatan indeks konten |
+| Stack | HTML5, CSS3 (custom properties, grid, flexbox), modern JavaScript; no framework |
+| Content | JSON files in `data/`, loaded with `fetch`; no backend |
+| Animation | `IntersectionObserver` scroll-reveal, View Transitions API, CSS transitions |
+| Pose detection | MediaPipe, running in the browser |
+| Assets | Python scripts (Pillow) for WebP conversion and content indexing |
 | Hosting | GitHub Pages |
 
-Beberapa keputusan teknis yang didokumentasikan di `PROJECT-NOTES.md`:
+Engineering decisions documented in `PROJECT-NOTES.md`:
 
-- Lebar kolom grid dikunci dengan `minmax(0, 1fr)` agar foto tetap sama besar walaupun
-  ada nama yang panjang.
-- Ukuran asli tiap foto momen ditulis ke `momen.json` supaya tata letak tidak melompat
-  saat foto dimuat secara lazy.
-- Aturan `[hidden]` dipasangkan dengan setiap kelas yang mengatur `display`.
-- Invalidasi cache dilakukan lewat parameter versi pada `css` dan `js`.
+- Grid columns are locked with `minmax(0, 1fr)` so photos stay equal in size even when a
+  member has a long name.
+- Each moment photo's intrinsic size is written to `momen.json`, so the layout does not shift
+  while lazy-loaded images arrive.
+- Every class that sets `display` is paired with a `[hidden]` rule.
+- Cache invalidation is handled through a version query on CSS and JS files.
 
-## Struktur proyek
+## Project structure
 
 ```
 XII-5-MAXIMA/
@@ -61,8 +62,8 @@ XII-5-MAXIMA/
 ├── data/
 │   ├── anggota.json
 │   ├── struktur-kelas.json
-│   ├── momen.json 
-│   └── video.json
+│   ├── momen.json  
+│   └── video.json 
 ├── public/
 │   ├── images/
 │   └── video/
@@ -75,34 +76,34 @@ XII-5-MAXIMA/
     └── blur-trend/
 ```
 
-## Menjalankan secara lokal
+## Local development
 
-Situs ini statis, tetapi `fetch` untuk berkas JSON memerlukan server lokal (membuka
-`index.html` langsung dari berkas tidak akan berfungsi).
+The site is static, but loading the JSON files with `fetch` requires a local server (opening
+`index.html` directly from disk will not work).
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Lalu buka `http://localhost:8080`. Fitur kamera pada Mini Game hanya berjalan di
-`localhost` atau lewat HTTPS.
+Then open `http://localhost:8080`. The camera features in the Mini Games only work on
+`localhost` or over HTTPS.
 
-## Mengelola konten
+## Managing content
 
-Seluruh teks dan foto diatur lewat berkas di `data/`, tanpa mengubah HTML.
+All text and photos are controlled through the files in `data/`; no HTML edits are needed.
 
-1. Konversi foto ke WebP:
+1. Convert photos to WebP:
    ```bash
    pip install Pillow
    python scripts/convert_to_webp.py public/images/anggota --max-width 800 --quality 85
    ```
-2. Isi `data/anggota.json` dan `data/struktur-kelas.json`. Tempat dan tanggal lahir
-   bersifat opsional.
-3. Setelah menambah atau menghapus foto momen, jalankan dari folder utama proyek:
+2. Fill in `data/anggota.json` and `data/struktur-kelas.json`. Place and date of birth are
+   optional.
+3. After adding or removing moment photos, run from the project root:
    ```bash
    python scripts/generate_momen_json.py
    ```
-4. Untuk video momen, kompres terlebih dahulu lalu isi `data/video.json`:
+4. For the moments video, compress it first, then fill in `data/video.json`:
    ```bash
    ffmpeg -i input.mp4 -vf scale=-2:720 -c:v libx264 -crf 28 -preset slow \
      -c:a aac -b:a 96k -movflags +faststart momen.mp4
@@ -115,21 +116,29 @@ Seluruh teks dan foto diatur lewat berkas di `data/`, tanpa mengubah HTML.
    }
    ```
 
-## Desain
+## Design
 
-- **Warna:** krem `#F2ECDD`, krem tua `#E8DFC7`, emas `#B8945A`, biru `#7FA6C4` dan
-  `#4A7391`, serta tinta `#2B2620`.
-- **Tipografi:** Fraunces untuk judul, Inter untuk isi.
-- **Ikon:** SVG garis tipis; tidak ada emoji.
+- **Colors:** cream `#F2ECDD`, deep cream `#E8DFC7`, gold `#B8945A`, blue `#7FA6C4` and
+  `#4A7391`, ink `#2B2620`.
+- **Typography:** Fraunces for headings, Inter for body text.
+- **Icons:** thin-line SVG; no emoji.
 
-## Kompatibilitas
+## Compatibility
 
-Transisi halaman pembuka memakai View Transitions API sebagai peningkatan progresif;
-tanpa API tersebut tampilan tetap berfungsi penuh dengan transisi pudar. Fitur kamera
-pada Mini Game memerlukan izin kamera dari pengguna.
+The landing transition uses the View Transitions API as a progressive enhancement; without it
+the site remains fully functional with a plain fade. The Mini Game camera features require the
+user's camera permission.
 
-## Kredit
+## Credits
 
-Aset stiker Photobooth dicatat di [`CREDITS.md`](CREDITS.md).
+Photobooth sticker assets are listed in [`CREDITS.md`](CREDITS.md).
 
-Dibuat oleh [Dhans62](https://github.com/Dhans62).
+Built by [Dhans62](https://github.com/Dhans62).
+
+## License
+
+Copyright (c) 2026 Dhans62. All rights reserved.
+
+This repository is public for viewing and portfolio purposes only. No permission is granted to
+copy, modify, redistribute, or reuse the code, design, photographs, or personal data of class
+members contained here without prior written consent.

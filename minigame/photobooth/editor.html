@@ -55,6 +55,7 @@
     <canvas id="stage"></canvas>
     <div style="margin-top:0.6rem;">
       <label>Layout untuk pratinjau</label>
+      <p style="margin:0 0 0.4rem;font-size:0.7rem;line-height:1.4;color:#6b6354;">Atur posisi di <b>4 Foto Strip</b>. Layout lain dihitung otomatis dari posisi itu (pratinjau di sini sama dengan hasil asli).</p>
       <select id="layoutSelect">
         <option value="single">1 Foto</option>
         <option value="strip2">2 Foto</option>
@@ -104,6 +105,7 @@
 
 <script type="module">
 import { LAYOUTS, getLayout } from "./js/layouts.js";
+import { placeSticker } from "./js/sticker-placement.js?v=1";
 
 const stage = document.getElementById("stage");
 const ctx = stage.getContext("2d");
@@ -242,9 +244,7 @@ async function draw() {
   for (const s of stickers) {
     const img = await loadImg(s.src);
     if (!img) continue;
-    const size = (s.sizePct / 100) * stripW;
-    const x = (s.xPct / 100) * stripW;
-    const y = (s.yPct / 100) * stripH;
+    const { x, y, size } = placeSticker(s, stripW, stripH);
     ctx.drawImage(img, x, y, size, size);
   }
 

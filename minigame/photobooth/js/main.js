@@ -1,5 +1,6 @@
 import { LAYOUTS, getLayout } from "./layouts.js";
 import { THEMES, getTemplate, getFirstTemplate } from "./themes.js";
+import { placeSticker } from "./sticker-placement.js?v=1";
 
 const FILTERS = [
   { id: "normal", label: "Normal", css: "none" },
@@ -18,6 +19,8 @@ const state = {
 };
 
 let mediaStream = null;
+let cameraRequestId = 0; // penanda permintaan kamera terbaru; yang lebih lama dibatalkan
+let cameraStarting = false;
 
 /* ============================================================
    ELEMEN
@@ -30,28 +33,63 @@ const cameraError = el("cameraError");
 /* ============================================================
    KAMERA
    ============================================================ */
-async function startCamera() {
+function stopCamera() {
+  cameraRequestId++; // batalkan permintaan getUserMedia yang masih menunggu
+  cameraStarting = false;
   if (mediaStream) {
     mediaStream.getTracks().forEach((t) => t.stop());
     mediaStream = null;
   }
+  video.srcObject = null;
+  videoCapture.srcObject = null;
+}
+
+async function startCamera() {
+  stopCamera(); // stream lama selalu dimatikan sebelum minta yang baru
+  if (document.hidden) return; // dinyalakan lagi oleh visibilitychange saat tab terlihat
+  const myId = cameraRequestId;
+  cameraStarting = true;
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
       audio: false,
     });
-    video.srcObject = mediaStream;
-    videoCapture.srcObject = mediaStream;
+    // Permintaan ini sudah usang (ada yang baru / kamera dimatikan) atau tab sedang tersembunyi
+    if (myId !== cameraRequestId || document.hidden) {
+      stream.getTracks().forEach((t) => t.stop());
+      if (myId === cameraRequestId) cameraStarting = false;
+      return;
+    }
+    mediaStream = stream;
+    cameraStarting = false;
+    video.srcObject = stream;
+    videoCapture.srcObject = stream;
     cameraError.hidden = true;
   } catch (err) {
-    if (video.readyState < 2) {
-      cameraError.hidden = false;
-    }
+    if (myId !== cameraRequestId) return;
+    cameraStarting = false;
+    // Stream lama sudah dimatikan di atas, jadi gagal di sini berarti memang tidak ada kamera
+    cameraError.hidden = false;
     console.error(err);
   }
 }
 
 el("retryCameraBtn")?.addEventListener("click", startCamera);
+
+function resumeCameraIfNeeded() {
+  if (document.hidden || mediaStream || cameraStarting) return;
+  if (!cameraError.hidden) return; // sedang error izin: tunggu tombol Coba Lagi
+  startCamera();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopCamera();
+  else resumeCameraIfNeeded();
+});
+window.addEventListener("pagehide", stopCamera);
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted) resumeCameraIfNeeded(); // kembali dari bfcache
+});
 
 function applyFilterToVideos() {
   video.style.filter = state.filter.css;
@@ -256,6 +294,8 @@ function runCountdown(seconds) {
     overlay.hidden = false;
     overlay.textContent = remaining;
     const interval = setInterval(() => {
+      // Tahan hitungan mundur selama tab tersembunyi atau kamera belum punya gambar
+      if (document.hidden || videoCapture.readyState < 2) return;
       remaining -= 1;
       if (remaining <= 0) {
         clearInterval(interval);
@@ -273,6 +313,7 @@ function wait(ms) {
 }
 
 function captureOnePhoto() {
+  if (!videoCapture.videoWidth) return; // kamera belum/tidak punya gambar
   const slotW = 480;
   const slotH = Math.round(slotW / state.layout.ratio);
 
@@ -397,9 +438,7 @@ async function renderResult() {
       console.warn(`Stiker gagal dimuat: ${s.src} (cek apakah file/folder sudah ada di repo)`);
       return;
     }
-    const size = (s.sizePct / 100) * stripW;
-    const x = (s.xPct / 100) * stripW;
-    const y = (s.yPct / 100) * stripH;
+    const { x, y, size } = placeSticker(s, stripW, stripH);
     ctx.drawImage(img, x, y, size, size);
   });
 

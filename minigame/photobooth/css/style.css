@@ -31,9 +31,16 @@ button { font-family: inherit; }
 }
 
 .topbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: var(--ink-soft);
   text-decoration: none;
   font-size: 0.85rem;
+}
+
+.topbar__back svg {
+  flex-shrink: 0;
 }
 
 .topbar__title {

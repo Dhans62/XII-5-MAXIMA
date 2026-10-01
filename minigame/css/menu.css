@@ -1,0 +1,179 @@
+:root {
+  --cream: #F2ECDD;
+  --paper: #FBF8F0;
+  --ink: #2B2620;
+  --ink-soft: #6b6354;
+  --gold: #B8945A;
+  --tape-gold: rgba(184, 148, 90, 0.55);
+  --tape-blue: rgba(127, 166, 196, 0.6);
+  --photo: #EAE2CC;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cream);
+  background-image: radial-gradient(rgba(43, 38, 32, 0.07) 1px, transparent 1.3px);
+  background-size: 18px 18px;
+  color: var(--ink);
+  font-family: "Inter", sans-serif;
+}
+
+/* TOPBAR (sama polanya dengan halaman Photobooth dan Blur Trend) */
+.topbar {
+  padding: 1rem 1.25rem 0;
+}
+
+.topbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.topbar__back svg {
+  flex-shrink: 0;
+}
+
+.topbar__back:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ISI */
+.menu-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.75rem;
+  padding: 1.5rem 1.25rem 3rem;
+  text-align: center;
+}
+
+.menu-head h1 {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: clamp(1.7rem, 6vw, 2.2rem);
+  line-height: 1.15;
+}
+
+.menu-head p {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.menu-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2.75rem 2.25rem;
+}
+
+/* KARTU = cetakan berbingkai putih, miring, berselotip */
+.card {
+  position: relative;
+  display: block;
+  width: min(100%, 264px);
+  padding: 14px 14px 20px;
+  background: var(--paper);
+  border-radius: 3px;
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow:
+    0 1px 2px rgba(43, 38, 32, 0.1),
+    0 12px 24px -10px rgba(43, 38, 32, 0.25);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 78px;
+  height: 24px;
+  margin-left: -39px;
+  background: var(--tape);
+  box-shadow: 0 1px 1px rgba(43, 38, 32, 0.08);
+  transform: rotate(var(--tape-tilt, 0deg));
+}
+
+.card--gold {
+  --tilt: -2deg;
+  --tape: var(--tape-gold);
+  --tape-tilt: 3deg;
+}
+
+.card--blue {
+  --tilt: 1.6deg;
+  --tape: var(--tape-blue);
+  --tape-tilt: -4deg;
+}
+
+.card__photo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--photo);
+  color: var(--ink);
+}
+
+.card__title {
+  display: block;
+  margin-top: 0.9rem;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.card__rule {
+  display: block;
+  width: 28px;
+  height: 1px;
+  margin: 0.55rem auto 0.6rem;
+  background: var(--gold);
+}
+
+.card__desc {
+  display: block;
+  padding: 0 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  transform: rotate(0deg) translateY(-4px);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: rotate(0deg) translateY(-4px);
+    box-shadow:
+      0 1px 2px rgba(43, 38, 32, 0.1),
+      0 18px 28px -10px rgba(43, 38, 32, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

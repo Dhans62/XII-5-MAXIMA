@@ -11,12 +11,35 @@ const ctx = canvas.getContext("2d");
 let currentMode = "blur";
 let handLandmarker = null;
 let mediaStream = null;
+let cameraRequestId = 0; // penanda permintaan kamera terbaru; yang lebih lama dibatalkan
+let cameraStarting = false;
 
 let presentFrames = 0;
 let absentFrames = 0;
 const ENTER_FRAMES = 3;
 const EXIT_FRAMES = 4;
 let isTriggered = false;
+
+/* Pengukur performa: buka halaman dengan ?debug=1. Tidak aktif secara default. */
+const DEBUG = new URLSearchParams(location.search).has("debug");
+let dbgEl = null;
+let dbgMsAvg = 0;
+let dbgCount = 0;
+let dbgFps = 0;
+let dbgWindowStart = performance.now();
+let dbgWasPose = false;
+let dbgRawStart = 0;
+let dbgRawEnd = 0;
+let dbgEnterMs = null;
+let dbgExitMs = null;
+if (DEBUG) {
+  dbgEl = document.createElement("div");
+  dbgEl.style.cssText =
+    "position:absolute;top:.5rem;left:.5rem;z-index:7;font:11px/1.4 monospace;" +
+    "background:rgba(0,0,0,.65);color:#9f9;padding:.4rem .5rem;border-radius:6px;" +
+    "pointer-events:none;white-space:pre";
+  cameraWrap.appendChild(dbgEl);
+}
 
 let particles = [];
 let lastHeartSpawn = 0;
@@ -25,27 +48,73 @@ let lastSparkleSpawn = 0;
 /* ============================================================
    KAMERA
    ============================================================ */
-async function startCamera() {
+const POSE_HINT = "Gerakkan tangan lalu bentuk pose dua jari";
+
+function resetPoseState() {
+  presentFrames = 0;
+  absentFrames = 0;
+  isTriggered = false;
+  particles = [];
+  cameraWrap.classList.remove("is-triggered");
+  colorWash.classList.remove("is-flashing");
+  poseStatus.textContent = POSE_HINT;
+}
+
+function stopCamera() {
+  cameraRequestId++; // batalkan permintaan getUserMedia yang masih menunggu
+  cameraStarting = false;
   if (mediaStream) {
     mediaStream.getTracks().forEach((t) => t.stop());
     mediaStream = null;
   }
+  video.srcObject = null;
+  resetPoseState(); // jangan biarkan blur/efek "nyangkut" di frame terakhir
+}
+
+async function startCamera() {
+  stopCamera(); // stream lama selalu dimatikan sebelum minta yang baru
+  if (document.hidden) return; // dinyalakan lagi oleh visibilitychange saat tab terlihat
+  const myId = cameraRequestId;
+  cameraStarting = true;
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" },
       audio: false,
     });
-    video.srcObject = mediaStream;
+    // Permintaan ini sudah usang (ada yang baru / kamera dimatikan) atau tab sedang tersembunyi
+    if (myId !== cameraRequestId || document.hidden) {
+      stream.getTracks().forEach((t) => t.stop());
+      if (myId === cameraRequestId) cameraStarting = false;
+      return;
+    }
+    mediaStream = stream;
+    cameraStarting = false;
+    video.srcObject = stream;
     cameraError.hidden = true;
   } catch (err) {
-    // Jangan timpa status kalau video ini sudah pernah dapat gambar (kamera sebenarnya jalan)
-    if (video.readyState < 2) {
-      cameraError.hidden = false;
-    }
+    if (myId !== cameraRequestId) return;
+    cameraStarting = false;
+    // Stream lama sudah dimatikan di atas, jadi gagal di sini berarti memang tidak ada kamera
+    cameraError.hidden = false;
     console.error(err);
   }
 }
 document.getElementById("retryCameraBtn").addEventListener("click", startCamera);
+
+function resumeCameraIfNeeded() {
+  if (document.hidden || mediaStream || cameraStarting) return;
+  if (!cameraError.hidden) return; // sedang error izin: tunggu tombol Coba Lagi
+  startCamera();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopCamera();
+  else resumeCameraIfNeeded();
+});
+window.addEventListener("pagehide", stopCamera);
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted) resumeCameraIfNeeded(); // kembali dari bfcache
+});
 
 function resizeCanvas() {
   canvas.width = cameraWrap.clientWidth;
@@ -113,8 +182,14 @@ function handScreenPosition(landmarks) {
 }
 
 function detectionLoop() {
-  if (video.readyState >= 2 && handLandmarker) {
-    const result = handLandmarker.detectForVideo(video, performance.now());
+  if (mediaStream && video.readyState >= 2 && handLandmarker) {
+    const dbgT0 = performance.now();
+    const result = handLandmarker.detectForVideo(video, dbgT0);
+    if (DEBUG) {
+      const dt = performance.now() - dbgT0;
+      dbgMsAvg = dbgMsAvg ? dbgMsAvg * 0.9 + dt * 0.1 : dt;
+      dbgCount++;
+    }
     let isPeaceSign = false;
     let handPos = null;
 
@@ -139,10 +214,31 @@ function detectionLoop() {
     }
 
     cameraWrap.classList.toggle("is-triggered", isTriggered);
-    poseStatus.textContent = isTriggered ? "Pose terdeteksi" : "Gerakkan tangan lalu bentuk pose dua jari";
+    poseStatus.textContent = isTriggered ? "Pose terdeteksi" : POSE_HINT;
 
     const justStarted = isTriggered && !wasTriggered;
     handleModeFrame(justStarted, handPos);
+
+    if (DEBUG) {
+      const now = performance.now();
+      if (isPeaceSign && !dbgWasPose) dbgRawStart = now;
+      if (!isPeaceSign && dbgWasPose) dbgRawEnd = now;
+      dbgWasPose = isPeaceSign;
+      if (justStarted) dbgEnterMs = now - dbgRawStart;
+      if (wasTriggered && !isTriggered) dbgExitMs = now - dbgRawEnd;
+      if (now - dbgWindowStart >= 1000) {
+        dbgFps = (dbgCount * 1000) / (now - dbgWindowStart);
+        dbgCount = 0;
+        dbgWindowStart = now;
+      }
+      const f = (n) => (n == null ? "-" : Math.round(n) + " ms");
+      dbgEl.textContent =
+        `deteksi: ${dbgMsAvg.toFixed(0)} ms/frame, ${dbgFps.toFixed(1)} fps\n` +
+        `video: ${video.videoWidth}x${video.videoHeight}\n` +
+        `pose mentah: ${isPeaceSign ? "ya" : "tidak"} (hadir ${presentFrames}, absen ${absentFrames})\n` +
+        `lama sampai aktif: ${f(dbgEnterMs)}\n` +
+        `lama sampai mati: ${f(dbgExitMs)}`;
+    }
   }
 
   requestAnimationFrame(detectionLoop);

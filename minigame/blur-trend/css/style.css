@@ -31,10 +31,17 @@ body {
 }
 
 .topbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: var(--cream);
   text-decoration: none;
   font-size: 0.85rem;
   opacity: 0.85;
+}
+
+.topbar__back svg {
+  flex-shrink: 0;
 }
 
 .topbar__title {
