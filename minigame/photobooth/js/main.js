@@ -16,6 +16,7 @@ const state = {
   template: getFirstTemplate("lucu"),
   timerMode: "manual",
   capturedPhotos: [], // Image[] — sudah dicrop sesuai rasio slot & sudah kena filter
+  retakeIndex: null, // indeks foto yang sedang diulang (null = alur normal)
 };
 
 let mediaStream = null;
@@ -70,7 +71,7 @@ async function startCamera() {
     cameraStarting = false;
     // Stream lama sudah dimatikan di atas, jadi gagal di sini berarti memang tidak ada kamera
     cameraError.hidden = false;
-    console.error(err);
+    console.error("Kamera gagal:", err.name, err.message);
   }
 }
 
@@ -218,16 +219,58 @@ function renderThemeCategoryRow() {
   });
 }
 
+// Dimensi strip untuk layout tertentu (rumus sama dengan renderResult)
+function stripDimsFor(layout) {
+  const slotW = 480, pad = 24, gap = 16, footer = 56;
+  const slotH = Math.round(slotW / layout.ratio);
+  let cols = 1, rows = layout.count;
+  if (layout.arrangement === "grid2x2") { cols = 2; rows = 2; }
+  if (layout.arrangement === "grid2x3") { cols = 2; rows = 3; }
+  return {
+    slotW, slotH, pad, gap, cols,
+    stripW: pad * 2 + slotW * cols + gap * (cols - 1),
+    stripH: pad * 2 + slotH * rows + gap * (rows - 1) + footer,
+  };
+}
+
+// Gambar thumbnail strip mini: frame + slot foto + stiker, untuk layout yang sedang dipilih
+async function drawThemeThumb(canvas, tpl) {
+  const d = stripDimsFor(state.layout);
+  const scale = 0.3; // resolusi internal thumbnail; ukuran tampilnya diatur CSS
+  canvas.width = Math.round(d.stripW * scale);
+  canvas.height = Math.round(d.stripH * scale);
+  const imgs = await Promise.all(tpl.stickers.map((st) => loadStickerImage(st.src)));
+  const c = canvas.getContext("2d");
+  c.scale(scale, scale);
+  c.fillStyle = tpl.frameColor;
+  c.fillRect(0, 0, d.stripW, d.stripH);
+  c.strokeStyle = tpl.borderColor;
+  c.lineWidth = 8;
+  c.strokeRect(4, 4, d.stripW - 8, d.stripH - 8);
+  for (let i = 0; i < state.layout.count; i++) {
+    const x = d.pad + (i % d.cols) * (d.slotW + d.gap);
+    const y = d.pad + Math.floor(i / d.cols) * (d.slotH + d.gap);
+    c.fillStyle = "#cfc7b2";
+    c.fillRect(x, y, d.slotW, d.slotH);
+  }
+  tpl.stickers.forEach((st, i) => {
+    if (!imgs[i]) return;
+    const { x, y, size } = placeSticker(st, d.stripW, d.stripH);
+    c.drawImage(imgs[i], x, y, size, size);
+  });
+}
+
 function renderThemeTemplateGrid() {
   const grid = el("themeTemplateGrid");
   grid.innerHTML = "";
   THEMES[state.category].templates.forEach((tpl) => {
     const card = document.createElement("button");
-    card.className = "theme-template-card" + (tpl.id === state.template.id ? " is-active" : "");
+    card.className = "theme-template-card" + (tpl === state.template ? " is-active" : "");
     card.innerHTML = `
-      <div class="theme-template-card__swatch" style="background:${tpl.frameColor}; border:2px solid ${tpl.borderColor};"></div>
-      <div class="theme-template-card__label">${tpl.label}</div>
+      <div class="theme-template-card__thumb"><canvas></canvas></div>
+      <div class="theme-template-card__label">${tpl.label || "Tanpa nama"}</div>
     `;
+    drawThemeThumb(card.querySelector("canvas"), tpl);
     card.addEventListener("click", () => {
       state.template = tpl;
       renderThemeTemplateGrid();
@@ -255,6 +298,8 @@ el("btnThemeResult").addEventListener("click", openThemeSheet);
    MULAI FOTO -> LAYAR 2
    ============================================================ */
 el("mulaiFotoBtn").addEventListener("click", () => {
+  state.retakeIndex = null;
+  el("cancelRetakeBtn").hidden = true;
   state.capturedPhotos = [];
   el("thumbRow").innerHTML = "";
   el("nextBtn").hidden = true;
@@ -287,13 +332,21 @@ async function runAutoCaptureSequence() {
   }
 }
 
+let countdownInterval = null;
+
+function cancelCountdown() {
+  clearInterval(countdownInterval);
+  countdownInterval = null;
+  el("countdownOverlay").hidden = true;
+}
+
 function runCountdown(seconds) {
   return new Promise((resolve) => {
     const overlay = el("countdownOverlay");
     let remaining = seconds;
     overlay.hidden = false;
     overlay.textContent = remaining;
-    const interval = setInterval(() => {
+    const interval = (countdownInterval = setInterval(() => {
       // Tahan hitungan mundur selama tab tersembunyi atau kamera belum punya gambar
       if (document.hidden || videoCapture.readyState < 2) return;
       remaining -= 1;
@@ -304,7 +357,7 @@ function runCountdown(seconds) {
       } else {
         overlay.textContent = remaining;
       }
-    }, 1000);
+    }, 1000));
   });
 }
 
@@ -312,8 +365,9 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function captureOnePhoto() {
-  if (!videoCapture.videoWidth) return; // kamera belum/tidak punya gambar
+// Ambil satu frame dari kamera: crop ke rasio slot, mirror, terapkan filter. null kalau kamera belum siap.
+function grabPhoto() {
+  if (!videoCapture.videoWidth) return null; // kamera belum/tidak punya gambar
   const slotW = 480;
   const slotH = Math.round(slotW / state.layout.ratio);
 
@@ -348,6 +402,16 @@ function captureOnePhoto() {
 
   const img = new Image();
   img.src = canvas.toDataURL("image/png");
+  return img;
+}
+
+function captureOnePhoto() {
+  const img = grabPhoto();
+  if (!img) return;
+  if (state.retakeIndex !== null) {
+    finishRetake(img);
+    return;
+  }
   state.capturedPhotos.push(img);
 
   const thumb = document.createElement("img");
@@ -366,8 +430,62 @@ function captureOnePhoto() {
   }
 }
 
+/* ============================================================
+   FOTO ULANG SATU FOTO (dari layar Hasil)
+   ============================================================ */
+function renderRetakeRow() {
+  const row = el("retakeRow");
+  row.innerHTML = "";
+  state.capturedPhotos.forEach((img, i) => {
+    const btn = document.createElement("button");
+    btn.className = "retake__btn";
+    btn.setAttribute("aria-label", `Ulangi foto ${i + 1}`);
+    btn.innerHTML = `<img src="${img.src}" alt=""><span class="retake__badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span>`;
+    btn.addEventListener("click", () => startRetake(i));
+    row.appendChild(btn);
+  });
+}
+
+function startRetake(index) {
+  state.retakeIndex = index;
+  el("thumbRow").innerHTML = "";
+  el("nextBtn").hidden = true;
+  el("cancelRetakeBtn").hidden = false;
+  el("captureStatus").textContent = `Ulangi foto ${index + 1} dari ${state.layout.count}`;
+  showScreen("screenCapture");
+  if (state.timerMode === "manual") {
+    el("manualCaptureBtn").hidden = false;
+  } else {
+    el("manualCaptureBtn").hidden = true;
+    const token = index; // dibatalkan lewat cancelRetake (countdown dihentikan, promise tidak pernah selesai)
+    runCountdown(parseInt(state.timerMode, 10)).then(() => {
+      if (state.retakeIndex === token) captureOnePhoto();
+    });
+  }
+}
+
+async function finishRetake(img) {
+  const index = state.retakeIndex;
+  state.retakeIndex = null;
+  state.capturedPhotos[index] = img;
+  el("cancelRetakeBtn").hidden = true;
+  try { await img.decode(); } catch (_) { /* tetap lanjut; renderResult menggambar apa yang ada */ }
+  showScreen("screenResult");
+  renderRetakeRow();
+  renderResult();
+}
+
+function cancelRetake() {
+  cancelCountdown();
+  state.retakeIndex = null;
+  el("cancelRetakeBtn").hidden = true;
+  showScreen("screenResult");
+}
+el("cancelRetakeBtn").addEventListener("click", cancelRetake);
+
 el("nextBtn").addEventListener("click", () => {
   showScreen("screenResult");
+  renderRetakeRow();
   renderResult();
 });
 

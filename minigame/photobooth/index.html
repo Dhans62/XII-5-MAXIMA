@@ -6,7 +6,7 @@
 <title>Photobooth — XII-5 · MAXIMA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 
@@ -72,12 +72,18 @@
 
     <button id="manualCaptureBtn" class="primary-btn">Ambil Foto</button>
     <button id="nextBtn" class="primary-btn" hidden>Berikutnya</button>
+    <button id="cancelRetakeBtn" class="secondary-btn" hidden>Batal</button>
   </section>
 
   <!-- ================= LAYAR 3: HASIL ================= -->
   <section id="screenResult" class="screen" hidden>
     <div class="result-preview-wrap">
       <canvas id="resultCanvas"></canvas>
+    </div>
+
+    <div class="retake">
+      <p class="retake__hint">Ketuk satu foto untuk mengulangnya</p>
+      <div id="retakeRow" class="retake__row"></div>
     </div>
 
     <button class="option-btn option-btn--wide" id="btnThemeResult">
@@ -128,6 +134,6 @@
     </div>
   </div>
 
-<script type="module" src="js/main.js?v=3"></script>
+<script type="module" src="js/main.js?v=5"></script>
 </body>
 </html>
