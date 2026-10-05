@@ -305,8 +305,6 @@ function setupModal(anggotaData) {
     document.getElementById("modalAbsen").textContent = `No. Absen ${person.no_absen}`;
     document.getElementById("modalNama").textContent = person.nama_lengkap || "-";
 
-    const ttl = [person.tempat_lahir, person.tanggal_lahir].filter(Boolean).join(", ");
-    document.getElementById("modalTTL").textContent = ttl || "-";
     document.getElementById("modalHarapan").textContent = person.harapan
       ? `"${person.harapan}"`
       : "-";
@@ -316,6 +314,7 @@ function setupModal(anggotaData) {
     modalCard.classList.toggle("modal--reverse", isRightSide);
 
     openModal();
+    playMemberSound(person);
   });
 
   modal.querySelectorAll("[data-close]").forEach((el) => {
@@ -337,8 +336,22 @@ function setupModal(anggotaData) {
   function closeModal() {
     modal.classList.remove("is-open");
     document.body.style.overflow = "auto";
+    stopMemberSound();
     startAutoplay();
   }
+
+  document.getElementById("modalSound").addEventListener("click", (e) => {
+    soundMuted = !soundMuted;
+    memberAudio.muted = soundMuted;
+    e.currentTarget.setAttribute("aria-pressed", String(soundMuted));
+    e.currentTarget.setAttribute("aria-label", soundMuted ? "Nyalakan suara" : "Matikan suara");
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!memberSoundActive) return;
+    if (document.hidden) memberAudio.pause();
+    else if (modal.classList.contains("is-open")) memberAudio.play().catch(() => {});
+  });
 }
 
 /* ============================================================
@@ -490,3 +503,64 @@ document.addEventListener(
   },
   true
 );
+
+/* ============================================================
+   BACKSOUND ANGGOTA
+   File: public/audio/NN.mp3 (NN = nomor absen 2 digit, mis. 01.mp3).
+   Hanya diputar saat modal anggota terbuka; berhenti saat ditutup.
+   Kalau file tidak ada, tidak terjadi apa-apa (tanpa suara).
+   ============================================================ */
+const memberAudio = new Audio();
+memberAudio.loop = true;
+memberAudio.preload = "none";
+let soundMuted = false;
+let memberSoundActive = false;
+let fadeTimer = null;
+
+function fadeMemberAudio(to, ms, done) {
+  clearInterval(fadeTimer);
+  const from = memberAudio.volume;
+  const steps = 10;
+  let i = 0;
+  fadeTimer = setInterval(() => {
+    i += 1;
+    memberAudio.volume = Math.max(0, Math.min(1, from + (to - from) * (i / steps)));
+    if (i >= steps) {
+      clearInterval(fadeTimer);
+      if (done) done();
+    }
+  }, ms / steps);
+}
+
+function playMemberSound(person) {
+  const btn = document.getElementById("modalSound");
+  clearInterval(fadeTimer);
+  btn.hidden = true;
+  memberSoundActive = false;
+  memberAudio.pause();
+
+  // play() harus dipanggil langsung di dalam klik (aturan autoplay browser)
+  memberAudio.src = `public/audio/${String(person.no_absen).padStart(2, "0")}.mp3`;
+  memberAudio.muted = soundMuted;
+  memberAudio.volume = 0;
+  const attempt = memberAudio.play();
+  if (!attempt) return;
+  attempt
+    .then(() => {
+      memberSoundActive = true;
+      btn.hidden = false;
+      btn.setAttribute("aria-pressed", String(soundMuted));
+      fadeMemberAudio(0.6, 500);
+    })
+    .catch(() => memberAudio.pause()); // file tidak ada: diam saja
+}
+
+function stopMemberSound() {
+  memberSoundActive = false;
+  document.getElementById("modalSound").hidden = true;
+  fadeMemberAudio(0, 250, () => {
+    memberAudio.pause();
+    memberAudio.removeAttribute("src");
+    memberAudio.load();
+  });
+}

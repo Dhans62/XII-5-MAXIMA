@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
 
@@ -131,13 +131,16 @@
       <button class="modal__close" data-close aria-label="Tutup">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
       </button>
+      <button id="modalSound" class="modal__sound" aria-label="Matikan suara" aria-pressed="false" hidden>
+        <svg class="icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <svg class="icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>
+      </button>
       <div class="modal__photo-wrap">
         <img id="modalPhoto" src="" alt="" class="modal__photo">
       </div>
       <div class="modal__info">
         <span id="modalAbsen" class="modal__absen"></span>
         <h3 id="modalNama" class="modal__nama"></h3>
-        <p id="modalTTL" class="modal__ttl"></p>
         <p id="modalHarapan" class="modal__harapan"></p>
       </div>
     </div>
@@ -152,7 +155,7 @@
     <span id="lightboxCount" class="lightbox__count"></span>
   </div>
 
-<script src="js/data-loader.js?v=14"></script>
-<script src="js/main.js?v=14"></script>
+<script src="js/data-loader.js?v=15"></script>
+<script src="js/main.js?v=15"></script>
 </body>
 </html>

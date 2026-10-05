@@ -669,7 +669,8 @@ h1, h2, h3 {
   }
 }
 
-.modal__close {
+.modal__close,
+.modal__sound {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
@@ -687,7 +688,8 @@ h1, h2, h3 {
   transition: background 0.2s ease, transform 0.15s ease;
 }
 
-.modal__close:hover {
+.modal__close:hover,
+.modal__sound:hover {
   background: var(--gold);
 }
 
@@ -729,11 +731,6 @@ h1, h2, h3 {
   margin-top: 0.3rem;
 }
 
-.modal__ttl {
-  font-size: 0.85rem;
-  color: var(--ink-soft);
-  margin-top: 0.4rem;
-}
 
 .modal__harapan {
   font-size: 0.9rem;
@@ -891,3 +888,10 @@ body { counter-reset: sec; }
 @media (min-width: 1024px) {
   .struktur-row--level-3 { max-width: calc(3 * 160px + 2 * 2rem); }
 }
+
+/* Tombol suara di modal anggota (muncul hanya jika ada musiknya) */
+.modal__sound { right: 3.25rem; }
+.modal__sound[hidden] { display: none; }
+.modal__sound .icon-off { display: none; }
+.modal__sound[aria-pressed="true"] .icon-on { display: none; }
+.modal__sound[aria-pressed="true"] .icon-off { display: block; }
