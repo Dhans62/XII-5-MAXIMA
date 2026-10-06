@@ -12,7 +12,7 @@ export const THEMES = {
     templates: [
       {
         id: "kapibara-teman",
-        label: "Kapibara & Teman",
+        label: "",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
         textColor: "#78465A",
@@ -26,9 +26,9 @@ export const THEMES = {
       {
         id: "2",
         label: "",
-        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
+        textColor: "#78465A",
         stickers: [
           { src: "assets/stickers/lucu/cute-01.webp", xPct: 85, yPct: 0, sizePct: 12 },
           { src: "assets/stickers/lucu/cute-15.webp", xPct: 3, yPct: 22, sizePct: 15 },
@@ -40,9 +40,9 @@ export const THEMES = {
       {
         id: "3",
         label: "",
-        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
+        textColor: "#78465A",
         stickers: [
           { src: "assets/stickers/lucu2/cute-03.webp", xPct: 82, yPct: 17, sizePct: 24 },
           { src: "assets/stickers/lucu2/cute-10.webp", xPct: 0, yPct: 27, sizePct: 16 },
@@ -55,9 +55,9 @@ export const THEMES = {
       {
         id: "4",
         label: "",
-        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
+        textColor: "#78465A",
         stickers: [
           { src: "assets/stickers/lucu2/cute-05.webp", xPct: 82, yPct: 17, sizePct: 24 },
           { src: "assets/stickers/lucu2/cute-16.webp", xPct: -5, yPct: 33, sizePct: 16 },
@@ -70,9 +70,9 @@ export const THEMES = {
       {
         id: "5",
         label: "",
-        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
+        textColor: "#78465A",
         stickers: [
           { src: "assets/stickers/lucu2/cute-05.webp", xPct: 82, yPct: 17, sizePct: 24 },
           { src: "assets/stickers/lucu2/cute-30.webp", xPct: -5, yPct: 33, sizePct: 16 },
@@ -85,9 +85,9 @@ export const THEMES = {
       {
         id: "6",
         label: "",
-        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
+        textColor: "#78465A",
         stickers: [
           { src: "assets/stickers/lucu2/cute-21.webp", xPct: 74, yPct: 17, sizePct: 24 },
           { src: "assets/stickers/lucu2/cute-23.webp", xPct: -4, yPct: 43, sizePct: 16 },
@@ -98,11 +98,11 @@ export const THEMES = {
         ],
       },
       {
-        id: "",
+        id: "7",
         label: "",
-        textColor: "#78465A",
         frameColor: "#FFEBF0",
         borderColor: "#F5A0BE",
+        textColor: "#78465A",
         stickers: [
           { src: "assets/stickers/lucu2/cute-27.webp", xPct: -4, yPct: -1, sizePct: 24 },
           { src: "assets/stickers/lucu2/cute-06.webp", xPct: 11, yPct: 44, sizePct: 16 },
@@ -110,6 +110,19 @@ export const THEMES = {
           { src: "assets/stickers/lucu2/cute-02.webp", xPct: 1, yPct: 91, sizePct: 19 },
           { src: "assets/stickers/lucu2/cute-27.webp", xPct: 77, yPct: 70, sizePct: 9 },
           { src: "assets/stickers/lucu2/cute-26.webp", xPct: 79, yPct: 95, sizePct: 15 },
+        ],
+      },
+      {
+        id: "8",
+        label: "",
+        frameColor: "#FFEBF0",
+        borderColor: "#F5A0BE",
+        stickers: [
+          { src: "assets/stickers/lucu6/cute-11.webp", xPct: 69, yPct: -1, sizePct: 26 },
+          { src: "assets/stickers/lucu6/cute-17.webp", xPct: 1.5, yPct: 20.5, sizePct: 17 },
+          { src: "assets/stickers/lucu6/cute-04.webp", xPct: 84, yPct: 46, sizePct: 24 },
+          { src: "assets/stickers/lucu6/cute-09.webp", xPct: -7, yPct: 72, sizePct: 19 },
+          { src: "assets/stickers/lucu6/cute-13.webp", xPct: 10.5, yPct: 92.5, sizePct: 17 },
         ],
       },
     ],
